@@ -48,8 +48,16 @@ def document(value):
             if node.get(key):
                 checked_id(node[key])
         settings = node.get("settings", {})
-        if not isinstance(settings, dict) or set(settings) - {"variant", "ratio", "style", "seconds", "steps", "cfg", "seed", "image_task", "stage3d", "reverse_prompts", "reverse_language", "reference_mentions"}:
+        if not isinstance(settings, dict) or set(settings) - {"variant", "ratio", "style", "seconds", "steps", "cfg", "seed", "image_task", "stage3d", "reverse_prompts", "reverse_language", "reference_mentions", "h3_prompt"}:
             raise ValueError("生成参数无效")
+        if 'h3_prompt' in settings:
+            data=settings['h3_prompt']
+            if not isinstance(data,dict) or set(data)!={'source','seconds','style'}:
+                raise ValueError('H3 提示词输入格式无效')
+            if not isinstance(data['source'],str) or len(data['source'])>30000 or not isinstance(data['style'],str) or not 1<=len(data['style'])<=200:
+                raise ValueError('H3 提示词输入过长或风格无效')
+            if type(data['seconds']) is not int or not 4<=data['seconds']<=90:
+                raise ValueError('H3 总时长为4–90秒')
         if "reference_mentions" in settings:
             mentions = settings["reference_mentions"]
             if not isinstance(mentions, dict) or len(mentions)>200:

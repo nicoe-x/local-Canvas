@@ -6,6 +6,7 @@ import hmac
 import io
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import sys
@@ -135,7 +136,9 @@ def create_app(data_dir=None,transport=None,start_worker=True):
             finally:await image.close()
         payload['reference_count']=len(checked);payload['connection']=config.read()['comfy']
         style={'写实':'Photorealistic, ','二维动画':'2D animation, ','3D国漫':'3D animation, '}.get(payload.get('style'),'')
-        if style:payload['text']=style+payload['text']
+        # Complete H3 documents carry their own style inside official fields.
+        structured_h3=payload['kind']=='video' and re.match(r'^(?:integrated_multimodal_description|subject_definitions):',payload['text'].lstrip())
+        if style and not structured_h3:payload['text']=style+payload['text']
         key=store.new_job(user['id'],payload,profile);folder=config.root/'jobs'/user['id']/key;folder.mkdir(parents=True,mode=0o700)
         for index,raw in enumerate(checked):(folder/f'ref-{index}.jpg').write_bytes(raw)
         return {'id':key}
@@ -335,6 +338,9 @@ def create_app(data_dir=None,transport=None,start_worker=True):
             return {**value,'model':model}
         except Exception:raise HTTPException(502,'图片理解服务未返回有效提示词') from None
 
+    from .h3_prompt_routes import register as register_h3_prompts
+    register_h3_prompts(app, authenticate, transport)
+
     @app.get('/api/health')
     def health():return {'ok':True,'service':'open-comfy-studio'}
 
@@ -346,7 +352,7 @@ def create_app(data_dir=None,transport=None,start_worker=True):
     class PortableCanvas(BaseHTTPMiddleware):
         async def dispatch(self,request,call_next):
             if request.url.path=='/canvas':
-                source=(static/'canvas.html').read_text(encoding='utf8').replace('</head>','<script src="/portable/canvas.js" defer></script></head>')
+                source=(static/'canvas.html').read_text(encoding='utf8').replace('</head>','<script src="/portable/canvas.js" defer></script><link rel="stylesheet" href="/portable/h3-prompts.css?v=1"><script src="/portable/h3-prompts.js?v=1" defer></script></head>')
                 return HTMLResponse(source)
             return await call_next(request)
     app.add_middleware(PortableCanvas)
