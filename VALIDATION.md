@@ -43,3 +43,9 @@
 ## 独立 GitHub 仓库初始化
 
 2026-11-16：从独立部署包整理为可直接克隆的源码仓库，更新根目录安装说明、独立构建脚本和测试路径。独立服务14项测试与画布118项测试通过；排除了仅用于原项目页面打补丁的1项迁移测试。无生产账号、私人地址、密钥、数据库、模型或生成媒体进入仓库。GitHub Actions提供Python 3.11/3.13自动测试。
+# H3 prompt conversion
+
+- Added authenticated, CSRF-protected `/api/prompts/h3`; configuration stays server-side. No ComfyUI submission or video job is created by conversion.
+- Tested contiguous duration budgeting for every integer from 4 to 90, template sections/order, reference bounds, cut timing, quoted dialogue preservation, and rejection of invented speech/music.
+- Browser fixture: 30-second source produces two editable 15-second outputs; adding an output creates connected text/video nodes, persists original source after reload, and leaves the video job count at zero. No browser JavaScript errors.
+- Local tests use an OpenAI-compatible CPU fixture. They verify integration and rejection behavior, not a language model's creative quality or the quality of generated video. Text/image generation remains separate.

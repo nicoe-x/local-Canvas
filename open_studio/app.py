@@ -335,6 +335,9 @@ def create_app(data_dir=None,transport=None,start_worker=True):
             return {**value,'model':model}
         except Exception:raise HTTPException(502,'图片理解服务未返回有效提示词') from None
 
+    from .h3_prompt_routes import register as register_h3_prompts
+    register_h3_prompts(app, authenticate, transport)
+
     @app.get('/api/health')
     def health():return {'ok':True,'service':'open-comfy-studio'}
 
@@ -346,7 +349,7 @@ def create_app(data_dir=None,transport=None,start_worker=True):
     class PortableCanvas(BaseHTTPMiddleware):
         async def dispatch(self,request,call_next):
             if request.url.path=='/canvas':
-                source=(static/'canvas.html').read_text(encoding='utf8').replace('</head>','<script src="/portable/canvas.js" defer></script></head>')
+                source=(static/'canvas.html').read_text(encoding='utf8').replace('</head>','<script src="/portable/canvas.js" defer></script><link rel="stylesheet" href="/portable/h3-prompts.css?v=1"><script src="/portable/h3-prompts.js?v=1" defer></script></head>')
                 return HTMLResponse(source)
             return await call_next(request)
     app.add_middleware(PortableCanvas)

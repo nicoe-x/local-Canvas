@@ -16,6 +16,7 @@
   let anchor = null, placement = null, composerNode = null, menuSource = null;
   const entries = [
     ['note', '文本 / 提示词', 'text'],
+    ['h3prompt', 'H3 提示词转换', 'text'],
     ['image', '图片生成', 'image'],
     ['video', '视频生成', 'video'],
     ['reverse', '图片反推', 'reverse'],
