@@ -28,8 +28,16 @@ class FormatTests(unittest.TestCase):
         request=PromptRequest(source='她说：“我到了。”',seconds=5)
         valid=prompt('(S1) [calm] says: <d>[Chinese] 我到了。</d>')
         self.assertFalse(validate_result({'segments':[{'seconds':5,'prompt':valid}]},request)['reviewed'])
-        for invalid in [prompt(),valid.replace('我到了。','我马上到。'),valid.replace('[Chinese]','[English]'),valid.replace('</d>','')]:
+        for invalid in [prompt(),valid.replace('我到了。','我马上到。'),valid.replace('[Chinese]','[English]'),valid.replace('</d>',''),valid.replace('(S1)','')]:
             with self.assertRaises(ValueError):validate_result({'segments':[{'seconds':5,'prompt':invalid}]},request)
+
+    def test_verbatim_dialogue_wrappers_are_canonicalized_without_rewriting(self):
+        request=PromptRequest(source='她说：“我到了。”',seconds=5)
+        for dialogue in ['<d> [Chinese] “我到了。” </d>','<d>我到了。</d>']:
+            value=validate_result({'segments':[{'seconds':5,'prompt':prompt('(S1) says: '+dialogue)}]},request)
+            self.assertIn('<d>[Chinese] 我到了。</d>',value['segments'][0]['prompt'])
+        with self.assertRaises(ValueError):
+            validate_result({'segments':[{'seconds':5,'prompt':prompt('<d>我马上到。</d>')}]},request)
 
     def test_reject_broken_template_and_hallucinated_references(self):
         request=PromptRequest(source='A woman holds a phone.',seconds=5)
@@ -85,6 +93,17 @@ class RouteTests(unittest.TestCase):
         self.result['segments'][0]['prompt']='bad format'
         with patch.dict(os.environ,{'STUDIO_TEXT_URL':'http://localhost:1234/v1','STUDIO_TEXT_MODEL':'local-text'}):
             self.assertEqual(422,self.client.post('/api/prompts/h3',headers=self.headers,json=self.body).status_code)
+
+    def test_h3_video_template_is_not_prefixed_with_style(self):
+        from open_studio.workflows import standard
+        profile=standard('fixture.safetensors');profile['kind']='video'
+        profile=self.app.state.store.save_workflow(profile)
+        self.app.state.config.write({'comfy':{'url':'http://localhost:8188'}})
+        text=prompt()
+        response=self.client.post('/api/jobs',headers=self.headers,json={'kind':'video','variant':profile['id'],'text':text,'style':'写实'})
+        self.assertEqual(200,response.status_code,response.text)
+        job=self.client.get('/api/jobs/'+response.json()['id']).json()
+        self.assertEqual(text,job['payload']['text'])
 
     def test_input_limits_and_saved_source_roundtrip(self):
         self.assertEqual(422,self.client.post('/api/prompts/h3',headers=self.headers,json={**self.body,'seconds':91}).status_code)

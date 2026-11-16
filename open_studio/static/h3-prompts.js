@@ -53,7 +53,7 @@
             const base=current();if(doc().nodes.length+(withVideo?2:1)>200)throw Error('画布节点数量已达上限');
             if(referenceIds.some(id=>!nodeBy(id)))throw Error('参考素材已移除，请重新转换');
             const text=add('note',{title:`H3 提示词 ${index+1}`,text:output.value,x:base.x+380,y:base.y+index*370});
-            if(withVideo){const videoSettings={...base.settings};if(base.kind!=='video')delete videoSettings.variant;const target=add('video',{title:`H3 视频 ${index+1}`,text:'',x:base.x+760,y:base.y+index*370,settings:{...videoSettings,seconds:segment.seconds,ratio:base.settings?.ratio||'16:9',style:'自定义风格'}});delete target.settings.h3_prompt;
+            if(withVideo){const videoSettings={...base.settings};if(base.kind!=='video')delete videoSettings.variant;const visualStyle=({'Live-action':'写实','2D animation':'二维动画','3D Chinese animation':'3D国漫'})[input.style]||(['写实','二维动画','3D国漫'].includes(base.settings?.style)?base.settings.style:'写实');const target=add('video',{title:`H3 视频 ${index+1}`,text:'',x:base.x+760,y:base.y+index*370,settings:{...videoSettings,seconds:segment.seconds,ratio:base.settings?.ratio||'16:9',style:visualStyle}});delete target.settings.h3_prompt;
               doc().edges.push({source:text.id,target:target.id},...referenceIds.map(id=>({source:id,target:target.id})));
             }
             touch();render();inspector();insert.disabled=true;video.disabled=true;status.textContent='已加入画布；尚未生成视频。请为视频节点选择 H3 工作流并检查参考图片顺序。';
