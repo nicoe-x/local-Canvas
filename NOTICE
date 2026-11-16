@@ -1,0 +1,13 @@
+Open Comfy Studio
+Copyright 2026 Open Comfy Studio contributors.
+
+This standalone distribution includes the creative canvas developed in the
+video-agent-system project. Its application source is provided under Apache-2.0
+for this distribution. This does not change the license of unrelated code in
+the parent repository, model weights, ComfyUI or third-party custom nodes.
+
+Optional Three.js 0.187.0 runtime: MIT license. Its original LICENSE is retained
+in open_studio/_canvas/static/vendor/three/LICENSE when bundled.
+
+ComfyUI is a separate service. No ComfyUI source, model weights, private data,
+account credentials or generated media are included in this distribution.

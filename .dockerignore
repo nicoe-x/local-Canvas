@@ -1,0 +1,12 @@
+.venv
+__pycache__
+*.pyc
+studio-data
+.env
+*.sqlite3
+build
+*.egg-info
+
+.git
+.env.*
+dist

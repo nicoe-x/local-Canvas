@@ -1,0 +1,18 @@
+#wire-preview{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:6;overflow:visible}
+#wire-preview path{fill:none;stroke:#c9a7ff;stroke-width:2.5;stroke-dasharray:7 4}
+.port{touch-action:none;cursor:crosshair}.port:hover{box-shadow:0 0 0 5px #bea1ff30}
+.stage-dialog{width:1400px;max-width:96vw;height:90dvh;max-height:96dvh;padding:0;overflow:hidden}
+.stage-toolbar{display:flex;align-items:center;gap:14px;padding:15px 20px;border-bottom:1px solid var(--border)}
+.stage-toolbar h2{font-size:17px;white-space:nowrap;margin:0}.stage-toolbar span{flex:1}
+.stage-layout{display:flex;height:calc(100% - 70px);min-height:0}
+.stage-viewport{position:relative;flex:1;min-width:0;overflow:hidden;background:#dce0e5}
+.stage-viewport canvas{display:block;touch-action:none}
+.stage-panel{width:310px;flex-shrink:0;padding:16px;overflow:auto;background:#20212a}
+.stage-panel h3{font-size:13px;margin:14px 0}.stage-preview{width:100%;background:#15161c;border-radius:7px;overflow:hidden}
+.stage-preview canvas{display:block;max-width:100%}
+.stage-actions{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0}.stage-actions button{font-size:11px;padding:6px 8px}
+.stage-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px}.stage-fields label{font-size:11px;margin:0}
+.stage-fields input{min-height:36px;font-size:12px;padding:7px;margin-top:5px}
+.stage-hint{position:absolute;left:14px;right:14px;bottom:14px;border-radius:7px;padding:10px;background:#ffffffd9;color:#383540;font-size:11px;pointer-events:none}
+#composer-reverse-language{max-width:210px}
+@media(max-width:700px){.stage-dialog{max-width:100vw;width:100vw;height:98dvh;max-height:98dvh;border-radius:6px}.stage-toolbar{padding:10px;gap:7px;flex-wrap:wrap}.stage-toolbar h2{font-size:14px}.stage-toolbar span{display:none}.stage-toolbar button{font-size:11px}.stage-layout{height:calc(100% - 65px);flex-direction:column}.stage-viewport{flex:none;width:100%;height:48%;min-height:190px}.stage-panel{width:100%;flex:1}.stage-preview{max-width:300px;margin:auto}.stage-hint{font-size:10px;bottom:7px;left:7px;right:7px}}

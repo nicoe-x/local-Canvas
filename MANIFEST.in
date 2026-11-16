@@ -1,0 +1,2 @@
+include LICENSE NOTICE README.md VALIDATION.md requirements-tested.txt
+recursive-include open_studio *.py *.js *.css *.html *.svg *.json LICENSE
