@@ -91,9 +91,9 @@
   }
   pickButton.onclick=beginPicking;
   function useReference(source,targetId=selected){
-    const target=targetId&&nodeBy(targetId);const isText=['note','reverse'].includes(source?.kind)&&source.text?.trim();if(!target||(!isText&&!eligible(source,target)))return false;
+    const target=targetId&&nodeBy(targetId);const isText=['note','reverse','h3prompt'].includes(source?.kind)&&source.text?.trim();if(!target||(!isText&&!eligible(source,target)))return false;
     const existing=doc().edges.some(edge=>edge.source===source.id&&edge.target===target.id);
-    const count=doc().edges.filter(edge=>edge.target===target.id&&!['note','reverse'].includes(nodeBy(edge.source).kind)).length;
+    const count=doc().edges.filter(edge=>edge.target===target.id&&!['note','reverse','h3prompt'].includes(nodeBy(edge.source).kind)).length;
     const limit=target.kind==='reverse'?1:target.kind==='image'?4:9;
     if(!existing&&!isText&&count>=limit){message(`当前节点最多连接 ${limit} 张参考图，请先移除已有参考。`);return false;}
     if(!existing){connection=source.id;connect(target.id);connection=null;if(!doc().edges.some(e=>e.source===source.id&&e.target===target.id))return false;}
@@ -124,8 +124,8 @@
   function highlightMention(){
     const items=menuItems();items.forEach((item,index)=>{const active=index===mentionIndex;item.setAttribute('aria-selected',String(active));if(active){prompt.setAttribute('aria-activedescendant',item.id);mentionSearch.setAttribute('aria-activedescendant',item.id);item.scrollIntoView({block:'nearest'});}});
   }
-  function allMaterials(target){return doc().nodes.filter(n=>n.id!==target.id&&(['note','reverse'].includes(n.kind)?!!n.text?.trim():!!preview(n)&&stateOf(n)==='COMPLETED_UNREVIEWED'));}
-  function categoryOf(node){return ['note','reverse'].includes(node.kind)?'text':node.kind==='video'?'video':node.kind==='asset'?'asset':'image';}
+  function allMaterials(target){return doc().nodes.filter(n=>n.id!==target.id&&(['note','reverse','h3prompt'].includes(n.kind)?!!n.text?.trim():!!preview(n)&&stateOf(n)==='COMPLETED_UNREVIEWED'));}
+  function categoryOf(node){return ['note','reverse','h3prompt'].includes(node.kind)?'text':node.kind==='video'?'video':node.kind==='asset'?'asset':'image';}
   function searchMatches(node,query,target){return (node.title||'未命名素材').toLocaleLowerCase().includes(query)||Object.entries(target.settings.reference_mentions||{}).some(([alias,id])=>id===node.id&&alias.includes(query));}
   const categoryNames={image:'图片',video:'视频',audio:'音频',text:'文本',asset:'资产'};
   const categoryPaths={image:'M4 4h16v16H4z M4 16l5-5 4 4 3-3 4 4 M8 8h.01',video:'M3 5h13v14H3z M16 9l5-3v12l-5-3',audio:'M4 9v6M8 5v14M12 3v18M16 7v10M20 9v6',text:'M5 4h14v16H5z M8 8h8M8 12h8M8 16h5',asset:'M3 7h7l2-3h9v16H3z'};
@@ -134,7 +134,7 @@
     const button=el('button','reference-mention');button.type='button';button.id='mention-'+node.id+(inSub?'-category':'');button.dataset.referenceId=node.id;button.setAttribute('role','option');
     if(preview(node)){const image=el('img');image.src=preview(node);image.alt='';image.loading='lazy';button.append(image);}else button.append(categoryIcon(categoryOf(node)));
     button.append(el('span','reference-item-name',node.title||'未命名素材'));
-    if(node.kind==='video'||(target.kind==='reverse'&&['note','reverse'].includes(node.kind))){button.disabled=true;button.title=node.kind==='video'?'当前生成适配器暂不支持视频素材引用':'图片反推只支持引用一张图片';button.append(el('small','','暂不支持'));}
+    if(node.kind==='video'||(target.kind==='reverse'&&['note','reverse','h3prompt'].includes(node.kind))){button.disabled=true;button.title=node.kind==='video'?'当前生成适配器暂不支持视频素材引用':'图片反推只支持引用一张图片';button.append(el('small','','暂不支持'));}
     else{button.onpointerdown=event=>event.preventDefault();button.onclick=()=>useReference(node,target.id);}
     return button;
   }
@@ -253,7 +253,7 @@
       else ratio=ratio.replace(':','/');
       const numbers=ratio.split('/').map(Number);
       if(!numbers.every(Number.isFinite)||numbers[1]<=0||numbers[0]/numbers[1]<.25||numbers[0]/numbers[1]>4)ratio='1/1';
-      const aspect=['note','reverse'].includes(node.kind)?'auto':ratio;
+      const aspect=['note','reverse','h3prompt'].includes(node.kind)?'auto':ratio;
       if(body.dataset.aspect!==aspect){body.style.aspectRatio=aspect;body.dataset.aspect=aspect;}
       for(const port of card.querySelectorAll('.port')){
         const top=(body.offsetTop+body.offsetHeight/2-port.offsetHeight/2)+'px';

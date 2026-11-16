@@ -17,7 +17,7 @@
   function change(id,value,event='input'){const field=$(id);field.value=value;field.dispatchEvent(new Event(event));sync();}
   function modelRow(value,label,mark){const row=el('button','toolbar-model-row');row.type='button';row.dataset.model=value;row.append(icon(mark),el('span','',label));const current=nodeBy(selected).kind==='video'||$('composer-model').value===value;row.setAttribute('aria-pressed',String(current));if(current)row.append(el('small','','已选择'));row.onclick=()=>{if(nodeBy(selected).kind==='image')change('composer-model',value,'change');close();};popup.append(row);}
   modelButton.onclick=()=>open(modelButton,()=>{heading('生成模型');if(nodeBy(selected).kind==='video')modelRow('default','Minimax H3','h3');else for(const [value,[label,mark]] of Object.entries(models))modelRow(value,label,mark);});
-  modeButton.onclick=()=>open(modeButton,()=>{heading('生成模式');const n=nodeBy(selected),refs=doc().edges.filter(e=>e.target===n.id&&!['note','reverse'].includes(nodeBy(e.source).kind)).length;
+  modeButton.onclick=()=>open(modeButton,()=>{heading('生成模式');const n=nodeBy(selected),refs=doc().edges.filter(e=>e.target===n.id&&!['note','reverse','h3prompt'].includes(nodeBy(e.source).kind)).length;
     if(n.kind==='video'){popup.append(el('p','toolbar-note',refs?'参考图生成视频 · 已连接 '+refs+' 张图片':'文生视频 · 连接图片后自动作为参考图'));return;}
     for(const [value,label] of [['general','自由生图 / 图片参考'],['edit','原图重绘'],['tryon','换装']]){const row=el('button','toolbar-choice',label);row.type='button';row.setAttribute('aria-pressed',String($('image-task').value===value));row.onclick=()=>{change('image-task',value);close();};popup.append(row);}
   });
@@ -31,7 +31,7 @@
   function caption(b,mark,text){b.replaceChildren(icon(mark),el('span','',text),icon('chevron'));}
   function sync(){const n=board&&selected&&nodeBy(selected),enabled=!!n&&['image','video'].includes(n.kind);composer.classList.toggle('compact-generation',enabled);for(const b of [modelButton,modeButton,settingsButton])b.hidden=!enabled;
     if(nodeId!==n?.id){close();nodeId=n?.id;}if(!enabled)return;
-    const m=n.kind==='video'?['Minimax H3','h3']:models[$('composer-model').value]||models.z_image_turbo;caption(modelButton,m[1],m[0]);const refs=doc().edges.some(e=>e.target===n.id&&!['note','reverse'].includes(nodeBy(e.source).kind));caption(modeButton,refs?'image':'text',n.kind==='video'?(refs?'参考图视频':'文生视频'):({edit:'原图重绘',tryon:'换装'}[$('image-task').value]||(refs?'图片参考':'文生图')));caption(settingsButton,'ratio',$('ratio').value+' · 原生'+(n.kind==='video'?' · '+$('seconds').value+'s':'')+' · 1个');
+    const m=n.kind==='video'?['Minimax H3','h3']:models[$('composer-model').value]||models.z_image_turbo;caption(modelButton,m[1],m[0]);const refs=doc().edges.some(e=>e.target===n.id&&!['note','reverse','h3prompt'].includes(nodeBy(e.source).kind));caption(modeButton,refs?'image':'text',n.kind==='video'?(refs?'参考图视频':'文生视频'):({edit:'原图重绘',tryon:'换装'}[$('image-task').value]||(refs?'图片参考':'文生图')));caption(settingsButton,'ratio',$('ratio').value+' · 原生'+(n.kind==='video'?' · '+$('seconds').value+'s':'')+' · 1个');
     const advanced=$('composer-advanced');if(advanced.parentElement!==bottom)bottom.insertBefore(advanced,$('composer-generate'));advanced.title='高级参数';advanced.setAttribute('aria-label','高级参数');
     $('composer-generate').title=$('composer-generate').dataset.polishLabel||'开始生成';$('composer-generate').setAttribute('aria-label',$('composer-generate').title);
   }

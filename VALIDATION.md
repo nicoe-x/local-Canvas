@@ -51,3 +51,10 @@
 - Local tests use an OpenAI-compatible CPU fixture. They verify integration and rejection behavior, not a language model's creative quality or the quality of generated video. Text/image generation remains separate.
 - Final local suite: 25 application/format tests and 118 canvas tests passed. Structured H3 video prompts retain their first official field when a visual style is selected.
 - Private installation: a five-second T2VA request ran on the existing local Qwen3.6-27B and returned valid fields in 45.6 seconds. A reference/dialogue request returned six fields with verbatim Chinese speech after wrapper normalization. Follow-up speaker-ID enforcement has unit coverage; its next real-model check was deferred because the shared GPU was busy (409, no preemption). No generated video quality claim is made.
+
+## Native H3 node follow-up
+
+- `h3prompt` is now a distinct canvas kind. Original source/settings and all converted segments persist separately from the selected output text. Input changes invalidate the output. The editor is anchored under/above its node rather than a modal.
+- Backend tests verify native-node roundtrip and selected-prompt submission, and rejection of incomplete conversions, stale upstream text and duration mismatches. No GPU job was executed by these tests.
+- Local browser fixture covers persistent multiple outputs, selection after reload, editor placement without covering the node, invalidation, and direct native-node-to-video links.
+- The private installation passed a browser acceptance test using a mocked text completion: native node save/reload and direct video connection, no JavaScript errors, no video submitted. Temporary test canvases were isolated from user work. The local Qwen adapter was not changed or run again for this UI follow-up.

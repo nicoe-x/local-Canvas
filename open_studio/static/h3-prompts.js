@@ -1,67 +1,81 @@
-/* Convert on explicit request; generated text stays editable and video jobs remain manual. */
+/* Native H3 conversion nodes. Input and output are deliberately separate. */
 (() => {
-  const dialog=el('dialog','h3-prompt-dialog');dialog.id='h3-prompt-dialog';dialog.setAttribute('aria-labelledby','h3-prompt-heading');
-  const header=el('div','panel-title'),heading=el('h2','','H3 提示词转换');heading.id='h3-prompt-heading';
-  const close=el('button','','关闭');close.type='button';close.onclick=()=>dialog.close();header.append(heading,close);
-  const description=el('p','muted','粘贴描述或剧本，转换后先检查，再连接到视频节点。背景音乐、字幕默认关闭。');
-  const form=el('form'),source=el('textarea');source.id='h3-source';source.required=true;source.maxLength=30000;source.rows=8;
-  source.placeholder='粘贴描述或剧本。对白请用中文引号标明，例如：林薇说：“我马上到。”';
-  function field(text,input){const label=el('label','',text);label.append(input);return label;}
-  const options=el('div','h3-prompt-options'),seconds=el('input');seconds.type='number';seconds.min='4';seconds.max='90';seconds.step='1';seconds.required=true;seconds.value='10';
-  const style=el('select');for(const [value,label] of [['Live-action','真人写实'],['2D animation','二维动画'],['3D Chinese animation','三维国漫'],['Preserve the style explicitly described in the source','遵循原文风格']]){const option=el('option','',label);option.value=value;style.append(option);}
-  options.append(field('总时长（4–90秒）',seconds),field('视觉风格',style));
-  const references=el('p','fineprint'),privacy=el('p','fineprint','调用部署者配置的文本服务，会发送当前原文和已连接图片的名称，不发送图片。长内容分成多个不超过15秒的片段；引号内台词逐句核对。');
-  const submit=el('button','primary','转换为 H3 提示词');submit.type='submit';
+  const panel=el('section','h3-prompt-dialog h3-prompt-panel');panel.id='h3-prompt-dialog';panel.hidden=true;
+  const head=el('div','panel-title'),heading=el('h2','','H3 提示词节点'),close=el('button','','收起');close.type='button';close.onclick=()=>{panel.hidden=true;hiddenNode=selected;};head.append(heading,close);
+  const form=el('form'),source=el('textarea');source.id='h3-source';source.maxLength=30000;source.rows=5;source.required=true;
+  source.placeholder='输入描述或剧本，对白用中文引号标明。也可以连入文本节点。';
+  const seconds=el('input');seconds.type='number';seconds.min='4';seconds.max='90';seconds.step='1';seconds.value='10';seconds.required=true;
+  const style=el('select');for(const [value,title] of [['Live-action','真人写实'],['2D animation','二维动画'],['3D Chinese animation','三维国漫'],['Preserve the style explicitly described in the source','遵循原文风格']]){const option=el('option','',title);option.value=value;style.append(option);}
+  function field(title,input){const label=el('label','',title);label.append(input);return label;}
+  const options=el('div','h3-prompt-options');options.append(field('总时长（4–90秒）',seconds),field('视觉风格',style));
+  const refs=el('p','fineprint'),hint=el('p','fineprint','转换不生成视频；默认无背景音乐、无字幕。参考图片只读取名称。'),run=el('button','primary','转换为 H3 提示词');run.type='submit';
   const status=el('p','h3-prompt-status');status.setAttribute('role','status');const results=el('div','h3-prompt-results');
-  form.append(field('描述 / 剧本原文',source),options,references,privacy,submit);dialog.append(header,description,form,status,results);document.body.append(dialog);
-  let origin=null,canvas=null,referenceIds=[],pending=false;
-  function linkedPictures(node){return doc().edges.filter(e=>e.target===node.id).map(e=>nodeBy(e.source)).filter(n=>n&&!['note','reverse','video'].includes(n.kind)&&preview(n));}
-  function open(node){
-    if(pending){dialog.showModal();return;}
-    origin=node.id;canvas=board.id;const saved=node.settings?.h3_prompt;
-    source.value=saved?.source??node.text??'';seconds.value=saved?.seconds??node.settings?.seconds??10;style.value=saved?.style||({写实:'Live-action',二维动画:'2D animation','3D国漫':'3D Chinese animation'}[node.settings?.style]||'Live-action');
-    const pictures=linkedPictures(node);referenceIds=pictures.map(n=>n.id);
-    references.textContent=pictures.length?'Ref2VA · '+pictures.map((n,i)=>`<Picture ${i+1}> → ${n.title}`).join('；')+'。仅按名称说明用途；请在结果中核对人物外观。':'T2VA · 当前节点未连接图片，不会编造参考图标签。';
-    status.textContent='';results.replaceChildren();dialog.showModal();source.focus();
+  form.append(field('描述 / 剧本原文',source),options,refs,hint,run);panel.append(head,form,status,results);$('viewport').append(panel);
+  for(const event of ['pointerdown','wheel','dblclick'])panel.addEventListener(event,e=>e.stopPropagation());
+  let shown=null,hiddenNode=null,requestNode=null;
+  const errors=new Map();
+  function pictures(node){return doc().edges.filter(e=>e.target===node.id).map(e=>nodeBy(e.source)).filter(n=>n&&!['note','reverse','h3prompt','video'].includes(n.kind)&&preview(n));}
+  function defaults(node){return node.settings.h3_prompt||{source:'',seconds:10,style:'Live-action'};}
+  function current(){const n=board&&selected&&nodeBy(selected);return n?.kind==='h3prompt'?n:null;}
+  function invalidate(node){node.text='';delete node.settings.h3_result;errors.set(node.id,'输入已更新，请重新转换');}
+  function saveInput(){const n=current();if(!n)return;const old=defaults(n),next={source:source.value,seconds:Number(seconds.value),style:style.value};if(!Number.isInteger(next.seconds)||next.seconds<4||next.seconds>90)return;if(JSON.stringify(old)!==JSON.stringify(next)){n.settings.h3_prompt=next;invalidate(n);touch();paintCards();status.textContent=errors.get(n.id);results.replaceChildren();}}
+  source.oninput=saveInput;seconds.oninput=saveInput;style.onchange=saveInput;
+  function selectOutput(node,index){const result=node.settings.h3_result;result.selected=index;node.text=result.segments[index].prompt;for(const edge of doc().edges.filter(e=>e.source===node.id)){const target=nodeBy(edge.target);if(target?.kind==='video')target.settings.seconds=result.segments[index].seconds;}touch();shown=null;render();inspector();}
+  function fillResults(node){
+    results.replaceChildren();const data=node.settings.h3_result;if(!data)return;
+    for(const [index,part] of data.segments.entries()){
+      const section=el('section','h3-prompt-result'),title=el('h3','',`片段 ${index+1} · ${part.seconds}秒`),output=el('textarea');output.rows=5;output.value=part.prompt;output.setAttribute('aria-label',`片段 ${index+1} H3 提示词，可编辑`);
+      output.oninput=()=>{part.prompt=output.value;if(data.selected===index)node.text=output.value;touch();paintCards();};
+      const actions=el('div','h3-prompt-actions'),choose=el('button','',data.selected===index?'当前输出':'设为当前输出'),video=el('button','','创建此段视频节点');choose.type=video.type='button';choose.onclick=()=>selectOutput(node,index);
+      video.onclick=()=>{
+        if(!board||!doc().nodes.includes(node))return;
+        if(doc().nodes.length+(data.segments.length===1?1:2)>200){message('节点数量已达上限');return;}
+        if(data.references.some(id=>!nodeBy(id))){message('参考图已移除，请重新转换');return;}
+        let textNode=node;
+        if(data.segments.length>1)textNode=add('note',{text:part.prompt,title:`${node.title} · 片段${index+1}`,x:node.x+380,y:node.y+index*320});
+        else selectOutput(node,0);
+        const settings={seconds:part.seconds,ratio:node.settings.ratio||'16:9',style:({'Live-action':'写实','2D animation':'二维动画','3D Chinese animation':'3D国漫'})[defaults(node).style]||'写实'};
+        const target=add('video',{text:'',x:textNode.x+380,y:textNode.y,settings});doc().edges.push({source:textNode.id,target:target.id},...data.references.map(id=>({source:id,target:target.id})));touch();render();inspector();message('视频节点已连接，尚未启动生成');
+      };
+      actions.append(choose,video);section.append(title,output,actions);results.append(section);
+    }
   }
-  dialog.addEventListener('click',event=>{if(event.target===dialog)dialog.close();});
-  const originalAdd=add;add=function(kind,extra={}){if(kind!=='h3prompt')return originalAdd(kind,extra);const n=originalAdd('note',{title:'H3 提示词转换',...extra});open(n);return n;};
-  const trigger=el('button','composer-tool','H3 提示词');trigger.id='h3-prompt-open';trigger.type='button';trigger.title='将描述或剧本转换成 H3 专用提示词';trigger.onclick=()=>{const node=board&&selected&&nodeBy(selected);if(node)open(node);};
-  $('composer-expand').before(trigger);
-  const rail=el('button','','H3');rail.title='添加 H3 提示词转换';rail.setAttribute('aria-label',rail.title);rail.onclick=()=>{if(board)add('h3prompt');};document.querySelector('.rail-bottom').before(rail);
-  const originalInspector=inspector;inspector=function(){originalInspector();trigger.hidden=!board||!selected||!['note','image','video','reverse'].includes(nodeBy(selected)?.kind);};
-  function current(){if(!board||board.id!==canvas||!nodeBy(origin))throw Error('原画布或节点已改变，请重新打开转换窗口');return nodeBy(origin);}
+  function sync(){
+    const n=current();if(!n){panel.hidden=true;shown=null;return;}
+    if(hiddenNode===n.id){panel.hidden=true;return;}panel.hidden=false;
+    heading.textContent=n.title;
+    if(shown!==n.id){shown=n.id;const input=defaults(n);source.value=input.source;seconds.value=input.seconds;style.value=input.style;fillResults(n);}
+    const imageNodes=pictures(n),texts=doc().edges.filter(e=>e.target===n.id&&['note','reverse','h3prompt'].includes(nodeBy(e.source)?.kind));
+    refs.textContent=`${imageNodes.length?'Ref2VA':'T2VA'} · ${texts.length} 条上游文本 · `+(imageNodes.map((item,i)=>`<Picture ${i+1}> → ${item.title}`).join('；')||'无参考图片');
+    run.disabled=requestNode!==null;source.disabled=seconds.disabled=style.disabled=requestNode===n.id;
+    run.textContent=requestNode===n.id?'本地 Qwen 转换中…':'转换为 H3 提示词';
+    status.textContent=requestNode===n.id?'转换中，完成后结果保存在此节点。':errors.get(n.id)||(n.settings.h3_result?`共 ${n.settings.h3_result.segments.length} 段 · 输出片段 ${n.settings.h3_result.selected+1} · 可从右侧连到视频节点`:'填写原文或连接上游文本，再开始转换。');
+    position();
+  }
+  function position(){if(panel.hidden)return;const card=$('nodes').querySelector(`[data-id="${shown}"]`);if(!card)return;const r=card.getBoundingClientRect(),v=$('viewport').getBoundingClientRect(),width=Math.min(700,v.width-24);panel.style.width=width+'px';panel.style.left=Math.max(12,Math.min(r.left-v.left+(r.width-width)/2,v.width-width-12))+'px';const below=v.bottom-r.bottom-30,above=r.top-v.top-30,useBelow=below>=260||below>=above,room=Math.max(180,Math.min(v.height*.65,useBelow?below:above));panel.style.maxHeight=room+'px';panel.style.top=Math.max(12,Math.min(useBelow?r.bottom-v.top+18:r.top-v.top-18-Math.min(panel.offsetHeight,room),v.height-Math.min(panel.offsetHeight,room)-12))+'px';}
+
+  const originalView=view;view=function(){originalView();position();};
+  function follow(){if(!panel.hidden&&dragging)position();requestAnimationFrame(follow);}requestAnimationFrame(follow);
+  function paintCards(){if(!board)return;for(const card of $('nodes').children){const n=nodeBy(card.dataset.id);if(n?.kind!=='h3prompt')continue;card.classList.add('h3-conversion-node');const body=card.querySelector('.card-body');body.replaceChildren();const tag=el('small','h3-node-label','描述 / 剧本 → H3 提示词');body.append(tag,el('p','card-text',n.text?n.text.slice(0,420):(defaults(n).source||'连接文本或输入剧本，转换为 H3 专用提示词。').slice(0,180)));
+    const data=n.settings.h3_result;if(data){const choices=el('select');choices.setAttribute('aria-label','选择节点输出片段');for(const [index,part] of data.segments.entries()){const option=el('option','',`输出片段 ${index+1} · ${part.seconds}秒`);option.value=index;choices.append(option);}choices.value=data.selected;choices.onchange=()=>selectOutput(n,Number(choices.value));body.append(choices);}
+    const edit=el('button','',requestNode===n.id?'正在转换…':'编辑 / 转换');edit.type='button';edit.onclick=()=>{hiddenNode=null;select(n.id);shown=null;sync();};body.append(edit);
+  }}
+  const originalRender=render;render=function(){originalRender();paintCards();renderEdges();position();};
+  const originalInspector=inspector;inspector=function(){originalInspector();sync();};
+  const originalAdd=add;add=function(kind,extra={}){const n=originalAdd(kind,extra);if(kind==='h3prompt'){hiddenNode=null;shown=null;sync();}return n;};
+  const trigger=el('button','composer-tool','H3 提示词节点');trigger.id='h3-prompt-open';trigger.type='button';trigger.onclick=()=>{if(!board||!selected)return;const base=nodeBy(selected),n=add('h3prompt',{x:base.x+380,y:base.y,settings:{h3_prompt:{source:base.text||'',seconds:Math.round(base.settings?.seconds||10),style:'Live-action'}}});if(['note','reverse'].includes(base.kind))doc().edges.push({source:base.id,target:n.id});else for(const pic of pictures(base))doc().edges.push({source:pic.id,target:n.id});touch();render();sync();};$('composer-expand').before(trigger);
+  const rail=el('button','','H3');rail.title='添加 H3 提示词节点';rail.setAttribute('aria-label',rail.title);rail.onclick=()=>{if(board)add('h3prompt');};document.querySelector('.rail-bottom').before(rail);
   form.onsubmit=async event=>{
-    event.preventDefault();if(pending)return;let node;
-    try{node=current();}catch(error){status.textContent=error.message;return;}
-    const input={source:source.value,seconds:Number(seconds.value),style:style.value};
-    node.settings={...node.settings,h3_prompt:input};touch();pending=true;submit.disabled=true;source.disabled=true;seconds.disabled=true;style.disabled=true;
-    status.textContent='正在转换并复检 H3 格式…';results.replaceChildren();
-    try{
-      await save();const titles=referenceIds.map(id=>{const n=nodeBy(id);if(!n)throw Error('参考素材已移除，请重新打开转换窗口');return n.title;});
-      const result=await api('/prompts/h3',json('POST',{...input,references:titles}));current();
-      status.textContent=`已完成 ${result.segments.length} 段 · ${result.model} · 格式校验通过，剧情和画面仍需检查。`;
-      let start=0;
-      for(const [index,segment] of result.segments.entries()){
-        const section=el('section','h3-prompt-result'),title=el('h3','',`片段 ${index+1} · ${start}–${start+segment.seconds}秒`),output=el('textarea');start+=segment.seconds;
-        output.value=segment.prompt;output.rows=10;output.setAttribute('aria-label',`片段 ${index+1} H3 提示词，可编辑`);
-        const actions=el('div','h3-prompt-actions'),copy=el('button','','复制提示词'),insert=el('button','','加入画布'),video=el('button','primary','加入画布并连接视频节点');
-        for(const button of [copy,insert,video])button.type='button';
-        copy.onclick=async()=>{try{await navigator.clipboard.writeText(output.value);status.textContent='提示词已复制';}catch{output.focus();output.select();status.textContent='请按 Ctrl+C 复制选中的提示词';}};
-        function place(withVideo){
-          try{
-            const base=current();if(doc().nodes.length+(withVideo?2:1)>200)throw Error('画布节点数量已达上限');
-            if(referenceIds.some(id=>!nodeBy(id)))throw Error('参考素材已移除，请重新转换');
-            const text=add('note',{title:`H3 提示词 ${index+1}`,text:output.value,x:base.x+380,y:base.y+index*370});
-            if(withVideo){const videoSettings={...base.settings};if(base.kind!=='video')delete videoSettings.variant;const visualStyle=({'Live-action':'写实','2D animation':'二维动画','3D Chinese animation':'3D国漫'})[input.style]||(['写实','二维动画','3D国漫'].includes(base.settings?.style)?base.settings.style:'写实');const target=add('video',{title:`H3 视频 ${index+1}`,text:'',x:base.x+760,y:base.y+index*370,settings:{...videoSettings,seconds:segment.seconds,ratio:base.settings?.ratio||'16:9',style:visualStyle}});delete target.settings.h3_prompt;
-              doc().edges.push({source:text.id,target:target.id},...referenceIds.map(id=>({source:id,target:target.id})));
-            }
-            touch();render();inspector();insert.disabled=true;video.disabled=true;status.textContent='已加入画布；尚未生成视频。请为视频节点选择 H3 工作流并检查参考图片顺序。';
-          }catch(error){status.textContent=error.message;}
-        }
-        insert.onclick=()=>place(false);video.onclick=()=>place(true);actions.append(copy,insert,video);section.append(title,output,actions);results.append(section);
-      }
-    }catch(error){status.textContent=error.message;}
-    finally{pending=false;submit.disabled=false;source.disabled=false;seconds.disabled=false;style.disabled=false;}
+    event.preventDefault();if(requestNode)return;const node=current();if(!node)return;saveInput();const canvas=board.id,input={...defaults(node)},refsNow=pictures(node),ids=refsNow.map(n=>n.id);
+    const upstream=doc().edges.filter(e=>e.target===node.id).map(e=>nodeBy(e.source)).filter(n=>['note','reverse','h3prompt'].includes(n?.kind)).map(n=>n.text?.trim()).filter(Boolean);
+    // Do not duplicate a source copied from an upstream text node.
+    const text=[...new Set([...upstream,input.source.trim()].filter(Boolean))].join('\n\n');if(!text){status.textContent='请输入原文或连接已有文本';return;}
+    invalidate(node);requestNode=node.id;busy.add(node.id);errors.delete(node.id);render();sync();
+    try{await save();const result=await api('/prompts/h3',json('POST',{...input,source:text,references:refsNow.map(n=>n.title)}));if(board?.id!==canvas||!doc().nodes.includes(node))throw Error('原画布已切换，请回到原节点重新转换');
+      if(JSON.stringify(ids)!==JSON.stringify(pictures(node).map(n=>n.id)))throw Error('参考图连线已改变，请重新转换');
+      node.settings.h3_result={segments:result.segments,selected:0,model:result.model,references:ids,input_source:text};node.text=result.segments[0].prompt;touch();await save();shown=null;
+    }catch(error){errors.set(node.id,error.message);}
+    finally{requestNode=null;busy.delete(node.id);render();sync();}
   };
+  window.addEventListener('resize',position);
 })();
