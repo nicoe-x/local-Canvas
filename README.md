@@ -1,72 +1,137 @@
-# Local Canvas · Open Comfy Studio
+# Local Canvas
 
-独立部署的 ComfyUI 创作画布与工作空间。复用现有无限画布体验，将账号、存储、队列、模型路径和服务器地址从私人部署中分离。
+**把 ComfyUI 工作流变成可连接、可复用的创作画布。**
 
-[下载部署包](https://github.com/nicoe-x/local-Canvas/releases/latest) · [全部版本](https://github.com/nicoe-x/local-Canvas/releases)
+Local Canvas 是一个可独立部署的图片与视频创作工作台。你可以按项目组织画布，通过节点编写提示词、引用素材、选择工作流并生成内容；模型推理交给你连接的 ComfyUI 执行。
 
-## 快速启动
+[下载部署包](https://github.com/nicoe-x/local-Canvas/releases/latest) · [查看版本](https://github.com/nicoe-x/local-Canvas/releases) · [反馈问题](https://github.com/nicoe-x/local-Canvas/issues) · [Apache-2.0](LICENSE)
 
-需要 Python 3.11+。图片生成不要求工作空间设备有显卡；显卡与模型由连接的 ComfyUI 提供。视频截图、音轨导出等本地视频工具需要 FFmpeg。
+## 功能一览
 
-下载独立发布 ZIP 后解压，运行：
+| 功能 | 当前能力 |
+| --- | --- |
+| 项目画布 | 按项目组织，拖动节点、连线、框选、多选和分组 |
+| 创作节点 | 图片、视频、文本、参考素材、图片反推与 3D 导演台 |
+| 参考图引用 | 连线、`@` 搜索、分类选择、画布直接点选 |
+| 节点编辑器 | 提示词与参数共用一个编辑器，跟随节点移动，支持放大编辑 |
+| ComfyUI 连接 | 本机自动发现、指定局域网扫描、手动地址与认证 |
+| 工作流导入 | 导入 API 格式 JSON，绑定提示词、采样参数和参考图 |
+| 任务与结果 | 生成进度、后台排队、结果下载、提交结果核对 |
+| 素材管理 | 本地保存、回收站、恢复、选中素材批量下载 |
+
+图片编辑、视频生成等能力取决于所选工作流、模型和 ComfyUI 节点。仓库不附带模型权重，也不会自动安装模型或自定义节点。
+
+## 开始使用
+
+### 1. 准备环境
+
+- **Python 3.11 或更新版本**：运行工作台。
+- **可访问的 ComfyUI**：可以在同一台电脑，也可以在局域网另一台设备。
+- **FFmpeg（按需）**：视频封面、音轨导出等本地视频工具需要它，并要求命令位于 `PATH` 中。
+
+工作台本身不要求显卡。显存、模型及推理环境由 ComfyUI 所在设备提供。首次启动脚本会联网安装 Python 依赖。
+
+### 2. 下载并启动
+
+从 [Releases](https://github.com/nicoe-x/local-Canvas/releases/latest) 下载 `open-comfy-studio-*.zip`，解压后进入包含 `start.ps1`、`start.sh` 的目录。
+
+**Windows / PowerShell**
 
 ```powershell
-# Windows，首次启动会建立虚拟环境并安装依赖
 .\start.ps1
 ```
 
+如果执行策略阻止运行脚本，可在当前操作中运行：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\start.ps1
+```
+
+**Linux / macOS**
+
 ```sh
-# Linux / macOS
 sh start.sh
 ```
 
-打开 `http://127.0.0.1:8848`。从启动终端或 `studio-data/setup-token` 获取一次性初始化令牌，创建自己的账号密码。初始化后令牌删除，没有固定管理员密码。
+打开 **http://127.0.0.1:8848**。
 
-从源码仓库运行（不需要原项目仓库）：
+### 3. 初始化并连接
 
-```sh
-git clone https://github.com/nicoe-x/local-Canvas.git
-cd local-Canvas
-python -m venv .venv
-# Windows 使用 .venv/Scripts/python；以下为 Linux/macOS
-.venv/bin/python -m pip install -c requirements-tested.txt .
-.venv/bin/open-comfy-studio --data ./studio-data
-```
+1. 从启动终端或 `studio-data/setup-token` 读取一次性初始化令牌。
+2. 在页面中创建工作空间管理员账号和密码。初始化完成后令牌文件会删除。
+3. 进入 **ComfyUI 连接**，选择发现的实例，或手动填写地址。
+4. 进入 **工作流**，导入已经在 ComfyUI 中跑通的 API 格式 JSON。
+5. 打开 **创作画布**，添加节点、填写提示词，选择工作流后生成。
 
-## Docker
+没有预设的通用管理员密码。
 
-发布 ZIP 目录内可直接运行：
+## 使用画布
 
-```sh
-docker compose up -d --build
-docker compose logs studio
-```
+### 节点与参考素材
 
-从完整源码仓库运行：
+双击画布空白处添加节点，或上传素材、从生成历史中选择已有作品。节点之间通过连线传递提示词和参考图片。
 
-```sh
-docker compose up -d --build
-```
+在提示词中输入 `@`，或点击 **画布参考**：
 
-账号、设置、作品和画布保存在命名卷 `studio-data`，更新镜像不会清空它。默认端口只发布到宿主机回环地址；需要局域网访问时，调整 compose 的端口映射并配置你的 HTTPS 反向代理。没有要求下载 NVIDIA CUDA 镜像或占用第二份模型显存。
+- 默认仅显示当前节点**已经连接的素材**。
+- 输入搜索词可搜索当前画布素材。
+- 进入“素材引用”分类后，在子菜单选择其他素材。
+- 点击 **画布点选** 后，可直接点击画布上的图片作为参考。
 
-Docker 内的 `127.0.0.1` 指容器本身；应用也会尝试 `host.docker.internal`。宿主 ComfyUI 必须监听 Docker 容器可访问的地址，或手动连接另一台局域网设备上的 ComfyUI。应用不能跨过防火墙、猜测认证密码或自动安装缺失节点。
+图片引用绑定来源节点，改名不会改变引用对象。来源被删除或断开时，仍存在的引用会阻止提交。未完成或不支持的素材不能当作有效图片输入。
 
-## 自动发现与连接
+### 常用操作
 
-1. 启动时探测本机常用端口 8188、8189、8190、8191，通过 `/system_stats` 与 `/object_info` 双重验证服务。
-2. 仅找到一个无需认证的可用实例时自动连接；多个实例保留列表，由用户选择。
-3. 在“ComfyUI 连接”中可指定私有局域网 CIDR（最大 /24）与端口，或手动填写地址。
-4. 支持 HTTP Basic、Bearer Token、私有令牌头及明确选择的自签名 HTTPS。认证头只存服务器设置文件，读取 API 不返回密钥。
-5. 连接后读取节点定义、checkpoint、UNet、CLIP、VAE、LoRA 选项。不会自动下载任何模型。
+| 操作 | 方式 |
+| --- | --- |
+| 添加节点 | 双击画布空白处 |
+| 移动节点 | 左键拖动节点可拖动区域 |
+| 平移画布 | 鼠标中键拖动，或按住 Space 拖动 |
+| 上下移动画布 | 普通滚轮 |
+| 缩放画布 | Ctrl + 滚轮 |
+| 多选 | 在空白处左键框选 |
+| 重命名节点 | 双击节点名称 |
+| 运行当前节点 | 编辑器中 Ctrl + Enter |
+| 移除选中节点 | Delete，移入回收站 |
+| 关闭浮层 | Esc，或点击浮层外空白处 |
 
-接口依据 [ComfyUI 官方服务器路由文档](https://github.com/Comfy-Org/docs/blob/main/development/comfyui-server/comms_routes.mdx)。扫描不会触发 `/prompt`，不会执行生成、安装节点或改动 ComfyUI 文件。
+普通编辑框跟随选中节点移动，优先位于节点下方；靠近窗口边缘时自动避让。画布缩放不会改变编辑框自身大小。放大编辑框可点击遮罩空白处关闭。
 
-## 工作流与模型
+## ComfyUI 连接方式
 
-模型选择实际选择的是已配置的 **API 工作流**，工作流再决定使用哪些模型。标准 checkpoint 与基础节点存在时，应用可自动建立普通文生图模板。H3、Z-Image、Qwen、自定义采样等请导入你已经在 ComfyUI 验证过的 API 格式工作流。
+### 自动发现
 
-在 ComfyUI 导出 API 格式 JSON，在工作空间填写名称、图片/视频类型并导入。常见 `KSampler`、`CLIPTextEncode`、latent 尺寸、`LoadImage` 会自动识别；自定义节点需显式声明语义绑定，不能保证任意图都可无配置识别。
+首次启动且尚未配置连接时，探测本机 `8188`、`8189`、`8190`、`8191` 端口，并通过 `/system_stats` 与 `/object_info` 验证服务。
+
+- 只发现一个无需认证的可用实例：自动连接。
+- 发现多个实例：由你选择。
+- 需要认证的实例：填写认证信息后连接。
+
+扫描不会提交生成任务。
+
+### 手动连接与局域网扫描
+
+在连接页面填写 `http://主机:端口` 或 `https://主机:端口`。当前连接地址需要使用服务根路径。
+
+支持 HTTP Basic、Bearer Token 和指定的私有令牌头。自签名 HTTPS 需要显式选择相应 TLS 设置。认证信息保存在服务端，设置查询接口不返回密钥。
+
+局域网扫描由用户指定私有 CIDR 与端口，单次网段范围最多 `/24`。服务需要可达，且防火墙允许访问。
+
+## 导入工作流
+
+### 导入什么文件
+
+使用 **ComfyUI 导出的 API 格式 JSON**。普通画布的 `nodes/links` JSON 不会自动转换为可执行工作流。
+
+工作台中的模型选择项实际对应一个已导入的工作流；使用哪个模型、加载哪些节点，由工作流决定。
+
+当基础节点和 checkpoint 可用时，应用会尝试建立一个普通文生图模板。MiniMax H3、Qwen、Z-Image 等特殊工作流，需要先在 ComfyUI 中验证，再导入工作台。
+
+### 参数绑定
+
+程序可以识别部分常见输入，例如 `KSampler`、`CLIPTextEncode`、latent 尺寸及 `LoadImage`。无法识别的自定义节点需要手动填写绑定。
+
+下面是绑定格式示例，节点编号和输入名称必须替换成你自己的工作流内容：
 
 ```json
 {
@@ -74,56 +139,120 @@ Docker 内的 `127.0.0.1` 指容器本身；应用也会尝试 `host.docker.inte
   "negative": [{"node": "7", "input": "text"}],
   "seed": [{"node": "3", "input": "seed"}],
   "steps": [{"node": "3", "input": "steps"}],
+  "cfg": [{"node": "3", "input": "cfg"}],
   "reference_images": [{"node": "10", "input": "image"}]
 }
 ```
 
-画布中输入 `@` 或点击“画布参考”，默认只显示当前节点已连接的素材。使用搜索框可查找当前画布素材，或从“素材引用”分类进入右侧列表；“画布点选”可以直接选图。已连接的参考图可反复插入提示词；引用绑定具体来源，断开后会阻止误用。
+只有绑定的参数会写入工作流。参考图片按绑定数组顺序传入，数量必须匹配。视频帧率、帧数对齐倍数和偏移需要明确配置。
 
-只有绑定的参数会被写入图。参考图片严格按绑定数组顺序传递，数量不匹配不提交。视频帧率、帧数对齐倍数/偏移在配置中明确填写；应用不猜测 H3 或其他模型的帧数规范。画布单分镜保持4–15秒，手动生成次数不限。
+当前画布单分镜时长范围为 **4–15 秒**。手动生成次数不限；同一节点有未结束的任务时会阻止重复提交。
 
-## 数据与任务
+## 其他部署方式
+
+### 从源码启动
+
+```sh
+git clone https://github.com/nicoe-x/local-Canvas.git
+cd local-Canvas
+```
+
+然后运行当前系统对应的启动脚本，或手动安装：
+
+```sh
+python3 -m venv .venv
+.venv/bin/python -m pip install -c requirements-tested.txt .
+.venv/bin/open-comfy-studio --data ./studio-data
+```
+
+Windows 手动安装时使用 `.venv\Scripts\python.exe` 和 `.venv\Scripts\open-comfy-studio.exe`。
+
+### Docker Compose
+
+在仓库根目录或部署包解压目录执行：
+
+```sh
+docker compose up -d --build
+docker compose logs studio
+```
+
+默认发布地址为 `127.0.0.1:8848`，数据保存在命名卷 `studio-data`。
+
+容器中的 `127.0.0.1` 指容器本身。连接宿主机 ComfyUI 时，可使用 `host.docker.internal`；宿主 ComfyUI 必须监听容器能够访问的地址。也可以手动连接局域网中的其他设备。
+
+已提供 Dockerfile 和 Compose 配置；当前发布版本的 Docker 容器构建尚未在本机实测，原生 Python 安装已验证。
+
+### 自定义监听与数据目录
+
+```sh
+open-comfy-studio --host 0.0.0.0 --port 8848 --data /path/to/studio-data
+```
+
+命令参数也可通过 `OPEN_STUDIO_HOST`、`OPEN_STUDIO_PORT`、`OPEN_STUDIO_DATA` 设置。跨设备访问前，请按部署环境配置网络访问范围和入口。
+
+## 数据保存与任务行为
 
 ```text
 studio-data/
-  studio.sqlite3       # 账号密码哈希、会话、任务、工作流
-  canvases.sqlite3     # 项目、画布、连线、回收站
-  settings.json        # 连接地址与认证，文件权限600（支持的平台）
-  materials/canvas/    # 上传素材与派生图片
-  jobs/<owner>/<id>/   # 本工作空间下载的生成结果、参考图
-  assets/three/        # 可选的固定版本3D运行库
+├── studio.sqlite3       # 账号、会话、任务和工作流
+├── canvases.sqlite3     # 项目、画布、连线和回收站
+├── settings.json        # ComfyUI 地址与认证配置
+├── materials/canvas/    # 上传素材和派生图片
+├── jobs/<owner>/<id>/   # 下载的生成结果和参考图片
+└── assets/three/        # 按需安装的 3D 运行库
 ```
 
-所有者、任务优先级、输出路径由服务器确定，前端不能指定目录。ComfyUI 的任务 ID 与本地任务绑定，输出下载后保存在本工作空间。任务保存提交时的工作流与连接快照，后续切换服务不会把旧任务指向新服务。未知提交结果进入 `NEEDS_ATTENTION`，通过“核对后台结果”查找原任务，不会自动重复POST。
+更新应用时保留整个数据目录。备份中包含账号信息、连接配置和作品，应按私人数据保存。
 
-单工作空间进程顺序调度；ComfyUI 自己继续处理其他客户端的队列。取消仅支持尚未开始的本地排队任务，运行中的共享 ComfyUI 不调用全局 interrupt。生成结果始终为 `COMPLETED_UNREVIEWED`，不冒充已经审片。
+任务会保存提交时的工作流与连接快照。切换连接不会把已提交的任务改投到另一个服务。提交结果不确定时，使用 **核对后台结果** 查找原任务；程序不会自动重复提交。
 
-回收站彻底删除会删除本工作空间的文件，存在其他画布引用时阻止误删。**ComfyUI 服务器自己的 output/input 目录不由普通客户端删除**，需通过 ComfyUI 或部署者自己的保留策略管理。不会让客户端拿任意远程路径进行删除。
+工作空间按本地队列顺序提交任务，最终执行由 ComfyUI 队列负责。仅支持取消尚未开始的本地排队任务，运行中的任务不会调用共享 ComfyUI 的全局中断接口。
 
-## 可选功能
+生成结果标记为 `COMPLETED_UNREVIEWED`，表示生成完成、尚未经内容审查。
 
-- 3D 导演台：包含3D资源的发布包可直接使用；纯源码安装可执行 `open-comfy-studio assets --data ./studio-data`，下载并验证固定版本 Three.js（MIT），不是模型下载。
-- 图片反推：配置 `STUDIO_VISION_URL`（OpenAI兼容 `/v1` 地址）、`STUDIO_VISION_MODEL`，需要认证时配置 `STUDIO_VISION_KEY`。只有用户点击反推才会发送图片。
-- 图层分离、720°全景、深度动作捕捉、完整AI审片和专用视频超分需额外适配器，当前不假装已安装；没有配置时显示说明或返回明确错误。
-- 现有生产服务器的私有 SSH 网关、自动归档、OA身份和GPU文件锁不移植为开源版的隐式依赖。ComfyUI 本身负责显存与执行队列。
+### 删除范围
 
-## 构建独立发布包
+移除节点后进入回收站。彻底删除会清理本工作空间管理的文件；存在其他画布引用时会阻止误删。
 
-```sh
-python scripts/build_release.py --output ./dist/open-comfy-studio-0.1.3.zip
-```
+ComfyUI 自己的 `input/output` 文件由 ComfyUI 所在设备管理。工作台本地删除不会自动删除远端副本；连接共享 ComfyUI 时，其输出可见性也由该服务控制。
 
-构建器仅收集白名单源码、静态文件、文档和已校验3D库，生成 `MANIFEST.sha256.json`。不复制 `.env`、数据库、私人账号、连接设置、模型、SSH密钥、日志、缓存和已生成媒体，也不要求发布整个历史仓库。
+## 可选能力与当前边界
 
-## 开发与验证
+- **3D 导演台**：发布包包含固定版本 Three.js；缺少资源时可执行 `open-comfy-studio assets --data ./studio-data` 下载并验证运行库。
+- **图片反推**：配置 `STUDIO_VISION_URL`、`STUDIO_VISION_MODEL`，需要认证时再配置 `STUDIO_VISION_KEY`。地址为 OpenAI 兼容的 `/v1` 服务入口，只有主动执行反推才发送图片。
+- **视频与音频参考**：当前未接入视频、音频素材作为生成输入，相关入口会显示禁用原因或空状态。
+- **高级处理**：图层分离、720°全景、深度动作捕捉、完整 AI 审片和专用视频超分需要额外适配器，目前未作为完整能力交付。
+- **账号管理**：首次运行创建工作空间管理员，暂未提供完整的用户管理界面。
+
+## 常见问题
+
+**扫描不到 ComfyUI？** 先确认服务已启动、端口正确，并检查监听地址和防火墙。Docker 用户还需区分容器地址与宿主机地址，也可直接手动连接。
+
+**能连接但无法生成？** 检查导入的是否为 API 格式、节点和模型是否已安装、参数绑定是否正确，以及参考图数量是否匹配。具体节点执行错误需到 ComfyUI 查看。
+
+**连接了图片却没有参考效果？** 所选工作流必须实际支持图片输入。把图片连到纯文生图工作流，不会自动获得参考图编辑能力。
+
+**模型列表有了，为什么还要导入工作流？** 模型列表来自服务元数据；一次生成还需要完整的节点连接、采样配置和输入绑定。
+
+## 开发与发布
+
+安装依赖后执行：
 
 ```sh
 python -m unittest discover -s tests -v
 python -m unittest discover -s tests/canvas -v
 ```
 
-服务发现、端口认证、API工作流绑定、队列输出、提交不确定性、配置快照、密钥脱敏和本地回收站均有隔离测试。真实ComfyUI服务可进行只读连接检查；不把模拟生成测试描述为真实模型生成效果。
+构建带完整性清单的部署包：
 
-具体测试范围与未实测项见 [验证记录](VALIDATION.md)。
+```sh
+python scripts/build_release.py --output ./dist/open-comfy-studio.zip
+```
 
-本包应用代码使用 [Apache-2.0](LICENSE)。模型、ComfyUI、自定义节点和可选运行库仍使用各自许可证，详见 [NOTICE](NOTICE)。本仓库仅包含独立版应用源码及声明过的运行库，不含原项目历史、私人部署配置或模型权重。
+构建器按白名单收集代码、静态资源和已校验运行库，生成 `MANIFEST.sha256.json`。验证范围、已测项目和未实测项见 [VALIDATION.md](VALIDATION.md)。
+
+## 开源协议
+
+应用代码使用 [Apache License 2.0](LICENSE)。Three.js 保留 MIT 许可证；ComfyUI、模型权重和自定义节点继续适用各自许可证，详见 [NOTICE](NOTICE)。
+
+仓库和部署包不包含私人账号、连接配置、数据库、模型权重或生成作品。
