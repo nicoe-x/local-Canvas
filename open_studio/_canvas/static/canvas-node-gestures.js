@@ -1,7 +1,7 @@
 /* Whole-card movement, type-based default names, and direct title editing. */
 (() => {
   const nodes=$('nodes'),viewport=$('viewport'),sequences=new Map();
-  const labels={image:'图片节点',video:'视频节点',note:'文本节点',asset:'资源节点',reverse:'图片反推节点',stage3d:'3D导演台节点'};
+  const labels={h3prompt:'H3提示词节点',image:'图片节点',video:'视频节点',note:'文本节点',asset:'资源节点',reverse:'图片反推节点',stage3d:'3D导演台节点'};
   const originalAdd=add;
   add=function(kind,extra={}){
     if(!board)return originalAdd(kind,extra);

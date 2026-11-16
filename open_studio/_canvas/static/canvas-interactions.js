@@ -16,7 +16,7 @@
   let anchor = null, placement = null, composerNode = null, menuSource = null;
   const entries = [
     ['note', '文本 / 提示词', 'text'],
-    ['h3prompt', 'H3 提示词转换', 'text'],
+    ['h3prompt', 'H3 提示词节点', 'text'],
     ['image', '图片生成', 'image'],
     ['video', '视频生成', 'video'],
     ['reverse', '图片反推', 'reverse'],
@@ -99,7 +99,7 @@
   }
   function filterMenu(){
     const kind=menuSource&&nodeBy(menuSource)?.kind;
-    const targets=kind&&['note','reverse'].includes(kind)?['image','video']:['image','video','reverse'];
+    const targets=kind&&['note','reverse','h3prompt'].includes(kind)?(kind==='h3prompt'?['video']:['image','video']):['image','video','reverse','h3prompt'];
     for(const button of menuButtons)button.hidden=!button.textContent.includes(search.value.trim())||(!!menuSource&&!targets.includes(button.dataset.kind));
     menu.querySelector('.menu-divider').hidden=!!menuSource;
   }
@@ -268,7 +268,7 @@
     for (const key of ['model', 'ratio', 'style']) {
       fields[key].replaceChildren(...[...$(key).options].map(option => option.cloneNode(true)));
       fields[key].value = $(key).value;
-      fields[key].hidden = ['note','reverse'].includes(node.kind) || (key === 'model' && node.kind !== 'image') || (key === 'style' && node.kind === 'stage3d');
+      fields[key].hidden = ['note','reverse','h3prompt'].includes(node.kind) || (key === 'model' && node.kind !== 'image') || (key === 'style' && node.kind === 'stage3d');
     }
     // The currently integrated video generation route uses H3's default workflow.
     let videoModel = $('composer-video-model');
@@ -288,7 +288,7 @@
     status.textContent = node.kind === 'note' ? '文本将按连线顺序传递给生成节点。' : $('input-summary').textContent + ' · ' + $('run-status').textContent;
     if(node.kind==='reverse')status.textContent=busy.has(node.id)?'正在调用已有图片反推服务…':node.settings.reverse_prompts?'反推结果已保存，可继续编辑或拖线作为提示词。':'连接一张已生成图片或上传原图，再开始反推。';
     if(node.kind==='stage3d')status.textContent=node.media_id?'三维构图参考已保存，可拖线给图片或视频生成节点。':'摆放人物和道具，调整摄影机后保存构图参考。';
-    if(node.kind==='image'&&['z_image_turbo','flux_dev'].includes(node.settings.variant)&&doc().edges.some(edge=>edge.target===node.id&&!['note','reverse'].includes(nodeBy(edge.source).kind))){
+    if(node.kind==='image'&&['z_image_turbo','flux_dev'].includes(node.settings.variant)&&doc().edges.some(edge=>edge.target===node.id&&!['note','reverse','h3prompt'].includes(nodeBy(edge.source).kind))){
       status.textContent='已连接参考图；当前模型仅支持文生图，请切换 H3-Image 或 Qwen。';run.disabled=true;
     }
     prompt.placeholder=node.kind==='stage3d'?'可填写场景备注；点击下方按钮进入三维摆位与摄影机取景。':node.kind==='reverse'?'图片反推完成后，提示词会显示在这里。':'描述画面，输入 @ 引用参考图，或点击“画布参考”选择图片…';
@@ -303,7 +303,7 @@
     const position = placement?.board === board?.id ? {...placement} : null;
     if (position) {
       extra = {...extra, x: position.x + position.offset, y: position.y + position.offset};
-      if(position.source && kind==='image' && !['note','reverse'].includes(nodeBy(position.source)?.kind)) {
+      if(position.source && kind==='image' && !['note','reverse','h3prompt'].includes(nodeBy(position.source)?.kind)) {
         extra.settings={variant:'h3_image_w4a8',steps:6,cfg:1,ratio:'16:9',style:'自定义风格',image_task:'general'};
       }
       placement.offset += 30;

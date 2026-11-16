@@ -228,8 +228,8 @@
     if(!board)return;
     for(const card of $('nodes').children){
       const node=nodeBy(card.dataset.id);if(!node)continue;
-      const name={note:'text',image:'image',video:'video',asset:'library',reverse:'reverse',stage3d:'cube'}[node.kind];
-      const chip=card.querySelector('.kind');chip.replaceChildren(icon(name));chip.title={note:'提示词',image:'图片',video:'视频',asset:'参考素材',reverse:'图片反推',stage3d:'3D导演台'}[node.kind];
+      const name={h3prompt:'text',note:'text',image:'image',video:'video',asset:'library',reverse:'reverse',stage3d:'cube'}[node.kind];
+      const chip=card.querySelector('.kind');chip.replaceChildren(icon(name));chip.title={h3prompt:'H3 提示词',note:'提示词',image:'图片',video:'视频',asset:'参考素材',reverse:'图片反推',stage3d:'3D导演台'}[node.kind];
       const placeholder=card.querySelector('.card-placeholder span');if(placeholder)placeholder.replaceChildren(icon(name));
       const edit=card.querySelector('.card-foot button');if(edit&&edit.textContent==='设置 / 生成'){
         decorate(edit,'settings','编辑',false);edit.title='编辑当前节点';

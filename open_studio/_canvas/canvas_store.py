@@ -10,7 +10,7 @@ import uuid
 from contextlib import contextmanager
 
 ID = re.compile(r"^[a-f0-9]{32}$")
-KINDS = {"note", "image", "video", "asset", "reverse", "stage3d"}
+KINDS = {"note", "image", "video", "asset", "reverse", "stage3d", "h3prompt"}
 
 
 def checked_id(value):
@@ -48,8 +48,26 @@ def document(value):
             if node.get(key):
                 checked_id(node[key])
         settings = node.get("settings", {})
-        if not isinstance(settings, dict) or set(settings) - {"variant", "ratio", "style", "seconds", "steps", "cfg", "seed", "image_task", "stage3d", "reverse_prompts", "reverse_language", "reference_mentions", "h3_prompt"}:
+        if not isinstance(settings, dict) or set(settings) - {"variant", "ratio", "style", "seconds", "steps", "cfg", "seed", "image_task", "stage3d", "reverse_prompts", "reverse_language", "reference_mentions", "h3_prompt", "h3_result"}:
             raise ValueError("生成参数无效")
+        if 'h3_result' in settings:
+            result=settings['h3_result']
+            if not isinstance(result,dict) or set(result)!={'segments','selected','model','references','input_source'}:
+                raise ValueError('H3 转换结果格式无效')
+            if not isinstance(result['input_source'],str) or len(result['input_source'])>30000:
+                raise ValueError('H3 原文快照过长')
+            parts=result['segments']
+            if not isinstance(parts,list) or not 1<=len(parts)<=6 or type(result['selected']) is not int or not 0<=result['selected']<len(parts):
+                raise ValueError('H3 输出片段无效')
+            for part in parts:
+                if not isinstance(part,dict) or set(part)!={'seconds','prompt'} or type(part['seconds']) is not int or not 4<=part['seconds']<=15 or not isinstance(part['prompt'],str) or not 1<=len(part['prompt'])<=30000:
+                    raise ValueError('H3 输出片段格式无效')
+            if sum(part['seconds'] for part in parts)>90 or not isinstance(result['model'],str) or len(result['model'])>200:
+                raise ValueError('H3 转换结果过长')
+            if not isinstance(result['references'],list) or len(result['references'])>9:
+                raise ValueError('H3 参考图对应关系无效')
+            for item in result['references']:checked_id(item)
+            if len(set(result['references']))!=len(result['references']):raise ValueError('H3 参考图编号重复')
         if 'h3_prompt' in settings:
             data=settings['h3_prompt']
             if not isinstance(data,dict) or set(data)!={'source','seconds','style'}:

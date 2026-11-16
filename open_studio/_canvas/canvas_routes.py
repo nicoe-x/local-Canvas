@@ -208,7 +208,7 @@ def register(ns):
             if not node or node["kind"] not in {"image", "video"}:
                 raise HTTPException(422, "请选择图片或视频生成卡片")
             sources = [nodes[edge["source"]] for edge in graph["edges"] if edge["target"] == node_id]
-            reference_count = sum(source["kind"] not in {"note", "reverse"} for source in sources)
+            reference_count = sum(source["kind"] not in {"note", "reverse", "h3prompt"} for source in sources)
             if reference_count > (4 if node["kind"] == "image" else 9):
                 raise HTTPException(422, "参考图数量超限：图片最多4张，视频最多9张")
             if node["kind"] == "image" and reference_count and node.get("settings", {}).get("variant", "z_image_turbo") in {"z_image_turbo", "flux_dev"}:
@@ -220,7 +220,27 @@ def register(ns):
                 if edge["target"] != node_id:
                     continue
                 source = nodes[edge["source"]]
-                if source["kind"] in {"note", "reverse"}:
+                if source["kind"] in {"note", "reverse", "h3prompt"}:
+                    if source['kind']=='h3prompt':
+                        result=source.get('settings',{}).get('h3_result')
+                        if not result or not source.get('text','').strip():
+                            raise HTTPException(422,'H3 提示词节点尚未转换完成，或输入已改变，请重新转换')
+                        if node['kind']!='video':
+                            raise HTTPException(422,'H3 提示词节点只能输出给视频节点')
+                        if len([n for n in sources if n['kind'] in {'note','reverse','h3prompt'}])!=1 or node.get('text','').strip():
+                            raise HTTPException(422,'完整 H3 提示词不能与其他文本拼接，请在 H3 节点内编辑')
+                        output=result['segments'][result['selected']]
+                        if source['text']!=output['prompt'] or node.get('settings',{}).get('seconds',5)!=output['seconds']:
+                            raise HTTPException(422,'H3 输出片段或时长已改变，请同步视频节点时长')
+                        bound=[n['id'] for n in sources if n['kind'] not in {'note','reverse','h3prompt'}]
+                        source_refs=[nodes[e['source']]['id'] for e in graph['edges'] if e['target']==source['id'] and nodes[e['source']]['kind'] not in {'note','reverse','h3prompt'}]
+                        if bound!=result['references'] or source_refs!=result['references']:
+                            raise HTTPException(422,'H3 参考图连线或顺序已改变，请重新转换并同步参考图')
+                        upstream=[nodes[e['source']].get('text','').strip() for e in graph['edges'] if e['target']==source['id'] and nodes[e['source']]['kind'] in {'note','reverse','h3prompt'}]
+                        original=source.get('settings',{}).get('h3_prompt',{}).get('source','').strip()
+                        merged='\n\n'.join(dict.fromkeys(text for text in upstream+[original] if text))
+                        if merged!=result['input_source']:
+                            raise HTTPException(422,'上游剧本已修改，请重新转换 H3 提示词')
                     if source["kind"] == "reverse" and not source.get("text", "").strip():
                         raise HTTPException(422, "图片反推尚未完成，请先运行上游反推节点")
                     prompts.append(source.get("text", ""))

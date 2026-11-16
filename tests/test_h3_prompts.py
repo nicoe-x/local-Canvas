@@ -132,5 +132,33 @@ class RouteTests(unittest.TestCase):
         self.assertEqual(409,TestClient(other).post('/api/prompts/h3',json=self.body).status_code)
         self.assertFalse(self.requests)
 
+    def test_native_node_persists_output_and_sends_only_selected_prompt(self):
+        import uuid
+        from open_studio.workflows import standard
+        profile=standard('fixture.safetensors');profile['kind']='video';profile=self.app.state.store.save_workflow(profile)
+        self.app.state.config.write({'comfy':{'url':'http://localhost:8188'}})
+        h3={'id':uuid.uuid4().hex,'kind':'h3prompt','x':0,'y':0,'title':'H3 提示词节点1','text':prompt(),
+            'settings':{'h3_prompt':self.body,'h3_result':{'segments':[{'seconds':5,'prompt':prompt()}],'selected':0,'model':'fixture','references':[],'input_source':self.body['source']}}}
+        video={'id':uuid.uuid4().hex,'kind':'video','x':400,'y':0,'title':'视频节点1','text':'',
+               'settings':{'variant':profile['id'],'seconds':5,'style':'写实'}}
+        graph={'title':'native','nodes':[h3,video],'edges':[{'source':h3['id'],'target':video['id']}]}
+        saved=self.client.post('/api/canvases',headers=self.headers,json=graph)
+        self.assertEqual(200,saved.status_code,saved.text);board=saved.json()
+        stored=self.client.get('/api/canvases/'+board['id']).json()['document']['nodes'][0]
+        self.assertEqual('h3prompt',stored['kind']);self.assertEqual(prompt(),stored['settings']['h3_result']['segments'][0]['prompt'])
+        url='/api/canvases/'+board['id']+'/nodes/'+video['id']+'/generate'
+        response=self.client.post(url,headers=self.headers,json={'revision':1,'token':uuid.uuid4().hex})
+        self.assertEqual(200,response.status_code,response.text)
+        self.assertEqual(prompt(),self.client.get('/api/jobs/'+response.json()['job_id']).json()['payload']['text'])
+        for change in ['unconverted','duration','source']:
+            copy=json.loads(json.dumps(graph));source,target=copy['nodes']
+            if change=='unconverted':source['text']='';source['settings'].pop('h3_result')
+            elif change=='duration':target['settings']['seconds']=10
+            else:source['settings']['h3_prompt']['source']='changed source'
+            new=self.client.post('/api/canvases',headers=self.headers,json=copy).json()
+            response=self.client.post('/api/canvases/'+new['id']+'/nodes/'+video['id']+'/generate',headers=self.headers,json={'revision':1,'token':uuid.uuid4().hex})
+            self.assertEqual(422,response.status_code,(change,response.text))
+        self.assertEqual(1,self.client.get('/api/jobs').json()['total'])
+
 
 if __name__=='__main__':unittest.main()
