@@ -27,7 +27,7 @@
     if(n.kind==='video'){heading('视频时长');const line=el('div','toolbar-duration'),range=el('input'),number=el('input');range.type='range';range.min=number.min=4;range.max=number.max=15;range.step=number.step=.01;number.type='number';range.value=number.value=$('composer-seconds').value;range.setAttribute('aria-label','拖动调整视频时长');number.setAttribute('aria-label','视频时长（秒）');const update=e=>{if(!e.target.checkValidity())return;range.value=number.value=e.target.value;change('composer-seconds',e.target.value);};range.oninput=number.oninput=update;line.append(range,number,el('span','','秒'));popup.append(line);}
     if(n.kind==='video'&&capabilities.face_repair){
       heading('生成后处理');
-      const label=el('label','toolbar-note'),check=el('input');check.type='checkbox';check.id='face-repair';check.checked=!!n.settings.face_repair;
+      const label=el('label','face-repair-choice'),check=el('input');check.type='checkbox';check.id='face-repair';check.checked=!!n.settings.face_repair;
       check.onchange=()=>{n.settings.face_repair=check.checked;touch();};
       label.append(check,document.createTextNode(' 小脸局部修复（实验）'));popup.append(label);
       const refs=doc().edges.filter(e=>e.target===n.id&&['image','asset','stage3d'].includes(nodeBy(e.source)?.kind)).map(e=>nodeBy(e.source));
