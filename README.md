@@ -184,3 +184,5 @@ python scripts/build_release.py --output ./dist/open-comfy-studio.zip
 ## 许可证
 
 应用代码是 [Apache-2.0](LICENSE)。Three.js 保留 MIT 协议。ComfyUI、模型和自定义节点用各自的许可证，见 [NOTICE](NOTICE)。仓库不带模型权重、私人配置或生成作品。
+
+H3 节点的“复制完整提示词”复制当前片段全文，预览区也可选中文字。拖动连接线时编辑区会隐藏；需要编辑时点“编辑 / 转换”。

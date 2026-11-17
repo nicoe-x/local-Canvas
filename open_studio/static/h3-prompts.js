@@ -1,7 +1,7 @@
 /* Native H3 conversion nodes. Input and output are deliberately separate. */
 (() => {
   const panel=el('section','h3-prompt-dialog h3-prompt-panel');panel.id='h3-prompt-dialog';panel.hidden=true;
-  const head=el('div','panel-title'),heading=el('h2','','H3 提示词节点'),close=el('button','','收起');close.type='button';close.onclick=()=>{panel.hidden=true;hiddenNode=selected;};head.append(heading,close);
+  const head=el('div','panel-title'),heading=el('h2','','H3 提示词节点'),close=el('button','','收起');close.type='button';close.onclick=()=>{panel.hidden=true;hiddenNode=selected;editorNode=null;};head.append(heading,close);
   const form=el('form'),source=el('textarea');source.id='h3-source';source.maxLength=30000;source.rows=5;source.required=true;
   source.placeholder='输入描述或剧本，对白用中文引号标明。也可以连入文本节点。';
   const seconds=el('input');seconds.type='number';seconds.min='4';seconds.max='90';seconds.step='1';seconds.value='10';seconds.required=true;
@@ -12,7 +12,7 @@
   const status=el('p','h3-prompt-status');status.setAttribute('role','status');const results=el('div','h3-prompt-results');
   form.append(field('描述 / 剧本原文',source),options,refs,hint,run);panel.append(head,form,status,results);$('viewport').append(panel);
   for(const event of ['pointerdown','wheel','dblclick'])panel.addEventListener(event,e=>e.stopPropagation());
-  let shown=null,hiddenNode=null,requestNode=null;
+  let shown=null,hiddenNode=null,requestNode=null,editorNode=null;
   const errors=new Map();
   function pictures(node){return doc().edges.filter(e=>e.target===node.id).map(e=>nodeBy(e.source)).filter(n=>n&&!['note','reverse','h3prompt','video'].includes(n.kind)&&preview(n));}
   function defaults(node){return node.settings.h3_prompt||{source:'',seconds:10,style:'Live-action'};}
@@ -42,7 +42,7 @@
   }
   function sync(){
     const n=current();if(!n){panel.hidden=true;shown=null;return;}
-    if(hiddenNode===n.id){panel.hidden=true;return;}panel.hidden=false;
+    if(hiddenNode===n.id||editorNode!==n.id||document.body.classList.contains('canvas-wiring')){panel.hidden=true;return;}panel.hidden=false;
     heading.textContent=n.title;
     if(shown!==n.id){shown=n.id;const input=defaults(n);source.value=input.source;seconds.value=input.seconds;style.value=input.style;fillResults(n);}
     const imageNodes=pictures(n),texts=doc().edges.filter(e=>e.target===n.id&&['note','reverse','h3prompt'].includes(nodeBy(e.source)?.kind));
@@ -56,13 +56,13 @@
 
   const originalView=view;view=function(){originalView();position();};
   function follow(){if(!panel.hidden&&dragging)position();requestAnimationFrame(follow);}requestAnimationFrame(follow);
-  function paintCards(){if(!board)return;for(const card of $('nodes').children){const n=nodeBy(card.dataset.id);if(n?.kind!=='h3prompt')continue;card.classList.add('h3-conversion-node');const body=card.querySelector('.card-body');body.replaceChildren();const tag=el('small','h3-node-label','描述 / 剧本 → H3 提示词');body.append(tag,el('p','card-text',n.text?n.text.slice(0,420):(defaults(n).source||'连接文本或输入剧本，转换为 H3 专用提示词。').slice(0,180)));
+  function paintCards(){if(!board)return;for(const card of $('nodes').children){const n=nodeBy(card.dataset.id);if(n?.kind!=='h3prompt')continue;card.classList.add('h3-conversion-node');const body=card.querySelector('.card-body');body.replaceChildren();const tag=el('small','h3-node-label','描述 / 剧本 → H3 提示词');const preview=el('p','card-text',n.text?n.text.slice(0,420):(defaults(n).source||'连接文本或输入剧本，转换为 H3 专用提示词。').slice(0,180));preview.dataset.selectableText='true';preview.addEventListener('click',e=>e.stopPropagation());preview.addEventListener('dblclick',e=>e.stopPropagation());body.append(tag,preview);if(n.text){const copy=el('button','','复制完整提示词');copy.type='button';copy.className='h3-copy-output';copy.onclick=async()=>{try{await copyText(n.text);message('已复制当前片段的完整提示词');}catch{message('复制失败，请在编辑区选中完整提示词后按 Ctrl+C');}};body.append(copy);}
     const data=n.settings.h3_result;if(data){const choices=el('select');choices.setAttribute('aria-label','选择节点输出片段');for(const [index,part] of data.segments.entries()){const option=el('option','',`输出片段 ${index+1} · ${part.seconds}秒`);option.value=index;choices.append(option);}choices.value=data.selected;choices.onchange=()=>selectOutput(n,Number(choices.value));body.append(choices);}
-    const edit=el('button','',requestNode===n.id?'正在转换…':'编辑 / 转换');edit.type='button';edit.onclick=()=>{hiddenNode=null;select(n.id);shown=null;sync();};body.append(edit);
+    const edit=el('button','',requestNode===n.id?'正在转换…':'编辑 / 转换');edit.type='button';edit.onclick=()=>{hiddenNode=null;editorNode=n.id;select(n.id);shown=null;sync();};body.append(edit);
   }}
   const originalRender=render;render=function(){originalRender();paintCards();renderEdges();position();};
   const originalInspector=inspector;inspector=function(){originalInspector();sync();};
-  const originalAdd=add;add=function(kind,extra={}){const n=originalAdd(kind,extra);if(kind==='h3prompt'){hiddenNode=null;shown=null;sync();}return n;};
+  const originalAdd=add;add=function(kind,extra={}){const n=originalAdd(kind,extra);if(kind==='h3prompt'){hiddenNode=null;editorNode=n.id;shown=null;sync();}return n;};
   const trigger=el('button','composer-tool','H3 提示词节点');trigger.id='h3-prompt-open';trigger.type='button';trigger.onclick=()=>{if(!board||!selected)return;const base=nodeBy(selected),n=add('h3prompt',{x:base.x+380,y:base.y,settings:{h3_prompt:{source:base.text||'',seconds:Math.round(base.settings?.seconds||10),style:'Live-action'}}});if(['note','reverse'].includes(base.kind))doc().edges.push({source:base.id,target:n.id});else for(const pic of pictures(base))doc().edges.push({source:pic.id,target:n.id});touch();render();sync();};$('composer-expand').before(trigger);
   const rail=el('button','','H3');rail.title='添加 H3 提示词节点';rail.setAttribute('aria-label',rail.title);rail.onclick=()=>{if(board)add('h3prompt');};document.querySelector('.rail-bottom').before(rail);
   form.onsubmit=async event=>{
@@ -77,5 +77,10 @@
     }catch(error){errors.set(node.id,error.message);}
     finally{requestNode=null;busy.delete(node.id);render();sync();}
   };
+  async function copyText(text){
+    try{if(!navigator.clipboard?.writeText)throw Error('clipboard unavailable');await navigator.clipboard.writeText(text);return;}catch{}
+    const input=el('textarea');input.value=text;input.readOnly=true;input.style.cssText='position:fixed;left:0;top:0;opacity:0;pointer-events:none';const active=document.activeElement;document.body.append(input);input.select();try{if(!document.execCommand('copy'))throw Error('copy failed');}finally{input.remove();active?.focus({preventScroll:true});}
+  }
+  document.addEventListener('pointerdown',event=>{if(event.target.closest('.port')){editorNode=null;panel.hidden=true;}},true);
   window.addEventListener('resize',position);
 })();

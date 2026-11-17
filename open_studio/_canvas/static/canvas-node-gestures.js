@@ -15,7 +15,7 @@
   let gesture=null,suppressClick=false;
   nodes.addEventListener('pointerdown',event=>{
     const card=event.target.closest('.card');
-    if(!board||!card||event.button!==0||event.target.closest('button,input,textarea,select,a,[contenteditable=true]')||viewport.classList.contains('hand-mode'))return;
+    if(!board||!card||event.button!==0||event.target.closest('button,input,textarea,select,a,[contenteditable=true],[data-selectable-text]')||viewport.classList.contains('hand-mode'))return;
     // Keep the native video control strip interactive while allowing its picture to move the node.
     const video=event.target.closest('video');if(video&&event.clientY>video.getBoundingClientRect().bottom-44)return;
     event.preventDefault();event.stopPropagation();
