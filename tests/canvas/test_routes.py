@@ -94,7 +94,7 @@ class RouteTests(unittest.TestCase):
         self.assertEqual(200,response.status_code,response.text)
         generated=self.generate(revision=2)
         self.assertEqual(200,generated.status_code,generated.text)
-        self.assertEqual('<Picture 2> beside <Picture 1>',self.created[-1]['text'])
+        self.assertIn('<Picture 2> beside <Picture 1>',self.created[-1]['text']);self.assertTrue(self.created[-1]['text'].startswith('subject_definitions:'))
         self.jobs[generated.json()['job_id']]['state']='COMPLETED_UNREVIEWED'
         value['edges']=value['edges'][:1]
         response=self.client.put('/api/canvases/'+self.board['id'],headers=self.headers,json={'revision':2,'document':value})

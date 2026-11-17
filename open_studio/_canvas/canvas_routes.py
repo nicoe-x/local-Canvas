@@ -274,6 +274,9 @@ def register(ns):
                 seconds = settings.get("seconds", 5)
                 if isinstance(seconds, bool) or not isinstance(seconds, (int,float)) or not 4 <= seconds <= 15:
                     raise HTTPException(422, "画布单分镜时长为4–15秒")
+                from canvas_h3 import compile_prompt
+                try:text=compile_prompt(text,reference_nodes,seconds,settings.get('style','写实'))
+                except ValueError as error:raise HTTPException(422,str(error)) from None
             payload = {**settings, "title": node.get("title") or "画布生成", "text": text,
                        "kind": node["kind"], "mode": "creative", "style": settings.get("style", "自定义风格"),
                        "ratio": settings.get("ratio", "16:9"), "labels": [f"参考图{i+1}" for i in range(len(uploads))],

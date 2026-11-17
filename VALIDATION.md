@@ -62,3 +62,7 @@
 ## H3 copy and wiring interaction fix
 
 Browser CPU fixture verified: opening the editor then dragging the output port hides both composers; releasing the wire does not reopen the H3 editor; clicking Edit explicitly reopens it. Clipboard tests compared the full output (longer than the 420-character preview) with the system clipboard, including a rejected Clipboard API followed by the legacy copy fallback. Drag-selecting preview text produced a nonempty selection and did not change node coordinates. No model or video jobs were submitted; no JavaScript errors.
+
+## Direct @ reference submission
+
+The existing alias resolver still binds aliases by node ID and actual upload order. Video submission now frames ordinary text or a complete legacy T2VA document as Ref2VA when images are connected, preserving authored dialogue/actions/sound/music and inserting Shot 1 when missing. Complete six-field documents remain unchanged. Partial templates and out-of-range picture tags are rejected. Existing 26 application tests and 118 canvas tests passed; three additional compiler tests passed. The previously rejected private video node passed the real creative_segments preflight with its current text and two references; no video was submitted or evaluated.
