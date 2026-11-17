@@ -173,6 +173,27 @@ class RouteTests(unittest.TestCase):
             failed=self.client.post('/api/canvases/'+board['id']+'/nodes/'+other['id']+'/generate',headers=self.headers,json={'revision':1,'token':uuid.uuid4().hex})
         self.assertEqual(422,failed.status_code,failed.text);self.assertEqual(1,self.client.get('/api/jobs').json()['total'])
 
+    def test_face_repair_requires_backend_capability_and_persists_boolean(self):
+        import uuid
+        from open_studio.workflows import standard
+        profile=standard('fixture.safetensors');profile['kind']='video';profile=self.app.state.store.save_workflow(profile)
+        self.app.state.config.write({'comfy':{'url':'http://localhost:8188'}})
+        node={'id':uuid.uuid4().hex,'kind':'video','title':'face','x':0,'y':0,'text':prompt(),
+              'settings':{'variant':profile['id'],'seconds':5,'style':'写实','face_repair':True}}
+        graph={'title':'face','nodes':[node],'edges':[]}
+        saved=self.client.post('/api/canvases',headers=self.headers,json=graph)
+        self.assertEqual(200,saved.status_code,saved.text);board=saved.json()
+        endpoint='/api/canvases/'+board['id']+'/nodes/'+node['id']+'/generate'
+        response=self.client.post(endpoint,headers=self.headers,json={'revision':1,'token':uuid.uuid4().hex})
+        self.assertEqual(501,response.status_code);self.assertEqual(0,self.client.get('/api/jobs').json()['total'])
+        self.app.state.h3_face_repair=True
+        response=self.client.post(endpoint,headers=self.headers,json={'revision':1,'token':uuid.uuid4().hex})
+        self.assertEqual(200,response.status_code,response.text)
+        job=self.client.get('/api/jobs/'+response.json()['job_id']).json()
+        self.assertIs(True,job['payload']['face_repair'])
+        node['settings']['face_repair']='true'
+        self.assertEqual(422,self.client.post('/api/canvases',headers=self.headers,json=graph).status_code)
+
     def test_native_node_persists_output_and_sends_only_selected_prompt(self):
         import uuid
         from open_studio.workflows import standard

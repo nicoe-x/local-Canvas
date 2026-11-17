@@ -48,8 +48,13 @@ def document(value):
             if node.get(key):
                 checked_id(node[key])
         settings = node.get("settings", {})
-        if not isinstance(settings, dict) or set(settings) - {"variant", "ratio", "style", "seconds", "steps", "cfg", "seed", "image_task", "stage3d", "reverse_prompts", "reverse_language", "reference_mentions", "h3_prompt", "h3_result"}:
+        if not isinstance(settings, dict) or set(settings) - {"variant", "ratio", "style", "seconds", "steps", "cfg", "seed", "image_task", "stage3d", "reverse_prompts", "reverse_language", "reference_mentions", "h3_prompt", "h3_result", "face_repair", "face_reference"}:
             raise ValueError("生成参数无效")
+        if 'face_repair' in settings and (type(settings['face_repair']) is not bool or node['kind'] != 'video'):
+            raise ValueError('小脸修复仅接受视频节点的布尔开关')
+        if settings.get('face_reference') is not None:
+            if node['kind'] != 'video':raise ValueError('人物参考仅用于视频修复')
+            checked_id(settings['face_reference'])
         if 'h3_result' in settings:
             result=settings['h3_result']
             if not isinstance(result,dict) or set(result)!={'segments','selected','model','references','input_source'}:

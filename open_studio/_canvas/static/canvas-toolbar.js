@@ -25,6 +25,20 @@
     for(const ratio of (n.kind==='video'?['16:9','9:16','1:1']:['16:9','4:3','1:1','3:4','9:16'])){const b=el('button','toolbar-choice');b.type='button';const outline=el('i','ratio-outline');const [w,h]=ratio.split(':').map(Number);outline.style.width=(20*Math.min(1,w/h))+'px';outline.style.height=(20*Math.min(1,h/w))+'px';b.append(outline,el('span','',ratio));b.setAttribute('aria-pressed',String($('ratio').value===ratio));b.onclick=()=>{change('composer-ratio',ratio,'change');popup.replaceChildren();parameters();position();};ratios.append(b);}popup.append(ratios);
     heading('视觉风格');const style=el('select');style.setAttribute('aria-label','视觉风格');style.replaceChildren(...[...$('composer-style').options].map(o=>o.cloneNode(true)));style.value=$('composer-style').value;style.onchange=()=>change('composer-style',style.value,'change');popup.append(style);
     if(n.kind==='video'){heading('视频时长');const line=el('div','toolbar-duration'),range=el('input'),number=el('input');range.type='range';range.min=number.min=4;range.max=number.max=15;range.step=number.step=.01;number.type='number';range.value=number.value=$('composer-seconds').value;range.setAttribute('aria-label','拖动调整视频时长');number.setAttribute('aria-label','视频时长（秒）');const update=e=>{if(!e.target.checkValidity())return;range.value=number.value=e.target.value;change('composer-seconds',e.target.value);};range.oninput=number.oninput=update;line.append(range,number,el('span','','秒'));popup.append(line);}
+    if(n.kind==='video'&&capabilities.face_repair){
+      heading('生成后处理');
+      const label=el('label','toolbar-note'),check=el('input');check.type='checkbox';check.id='face-repair';check.checked=!!n.settings.face_repair;
+      check.onchange=()=>{n.settings.face_repair=check.checked;touch();};
+      label.append(check,document.createTextNode(' 小脸局部修复（实验）'));popup.append(label);
+      const refs=doc().edges.filter(e=>e.target===n.id&&['image','asset','stage3d'].includes(nodeBy(e.source)?.kind)).map(e=>nodeBy(e.source));
+      const identity=el('select');identity.setAttribute('aria-label','人脸修复身份参考');
+      const base=el('option','','使用视频自身的人脸');base.value='';identity.append(base);
+      for(const ref of refs){const option=el('option','',ref.title);option.value=ref.id;identity.append(option);}
+      identity.value=n.settings.face_reference||'';
+      identity.onchange=()=>{n.settings.face_reference=identity.value||null;touch();};popup.append(identity);
+      popup.append(el('p','toolbar-note','建议选择已连接的清晰人物图；四视图取最大的脸，出现多个人时请先提供单人头像。'));
+      popup.append(el('p','toolbar-note','视频生成后自动执行，不依赖超分。暂支持24fps写实单人小脸；保留原片和原声音，未检出安全轨迹时明确跳过。'));
+    }
     popup.append(el('p','toolbar-note','原生分辨率 · 每次生成 1 个结果'+(n.kind==='video'?' · H3 自动生成声音':'')));
   }
   settingsButton.onclick=()=>open(settingsButton,parameters);
