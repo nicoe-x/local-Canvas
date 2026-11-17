@@ -132,6 +132,27 @@ class RouteTests(unittest.TestCase):
         self.assertEqual(409,TestClient(other).post('/api/prompts/h3',json=self.body).status_code)
         self.assertFalse(self.requests)
 
+    def test_plain_video_text_is_converted_before_submission_and_retry_is_cached(self):
+        import uuid
+        from open_studio.workflows import standard
+        profile=standard('fixture.safetensors');profile['kind']='video';profile=self.app.state.store.save_workflow(profile)
+        self.app.state.config.write({'comfy':{'url':'http://localhost:8188'}})
+        def video(text):return {'id':uuid.uuid4().hex,'kind':'video','title':'auto','x':0,'y':0,'text':text,'settings':{'variant':profile['id'],'seconds':5,'style':'写实'}}
+        node=video(self.body['source'])
+        board=self.client.post('/api/canvases',headers=self.headers,json={'title':'automatic','nodes':[node],'edges':[]}).json()
+        endpoint='/api/canvases/'+board['id']+'/nodes/'+node['id']+'/generate';body={'revision':1,'token':uuid.uuid4().hex}
+        with patch.dict(os.environ,{'STUDIO_TEXT_URL':'http://localhost:1234/v1','STUDIO_TEXT_MODEL':'local-text'}):
+            first=self.client.post(endpoint,headers=self.headers,json=body)
+            second=self.client.post(endpoint,headers=self.headers,json=body)
+        self.assertEqual(200,first.status_code,first.text);self.assertEqual(first.json()['job_id'],second.json()['job_id'])
+        self.assertEqual(1,len(self.requests));self.assertEqual(prompt(),self.client.get('/api/jobs/'+first.json()['job_id']).json()['payload']['text'])
+        self.result={'segments':[{'seconds':5,'prompt':'invalid model output'}]}
+        other=video('A woman opens a window.')
+        board=self.client.post('/api/canvases',headers=self.headers,json={'title':'invalid','nodes':[other],'edges':[]}).json()
+        with patch.dict(os.environ,{'STUDIO_TEXT_URL':'http://localhost:1234/v1','STUDIO_TEXT_MODEL':'local-text'}):
+            failed=self.client.post('/api/canvases/'+board['id']+'/nodes/'+other['id']+'/generate',headers=self.headers,json={'revision':1,'token':uuid.uuid4().hex})
+        self.assertEqual(422,failed.status_code,failed.text);self.assertEqual(1,self.client.get('/api/jobs').json()['total'])
+
     def test_native_node_persists_output_and_sends_only_selected_prompt(self):
         import uuid
         from open_studio.workflows import standard
