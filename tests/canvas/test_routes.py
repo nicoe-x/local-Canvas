@@ -153,6 +153,29 @@ class RouteTests(unittest.TestCase):
         self.assertEqual(404,self.client.get(url,headers={'authorization':'bob'}).status_code)
         self.assertEqual(200,self.client.get(url,headers=self.headers).status_code)
 
+    def test_face_identity_is_bound_to_owned_connected_upload_order(self):
+        self.ns['app'].state.h3_face_repair=True
+        value=self.board['document'];node=value['nodes'][0];node['kind']='video'
+        node['settings']={'face_repair':True,'seconds':5}
+        for title in ['scene','person']:
+            media=self.client.post('/api/canvases/'+self.board['id']+'/media',headers=self.headers,content=b'pretend jpeg').json()
+            source={'id':uid(),'kind':'asset','title':title,'x':0,'y':0,'media_id':media['media_id']}
+            value['nodes'].append(source);value['edges'].append({'source':source['id'],'target':node['id']})
+        node['settings']['face_reference']=value['nodes'][-1]['id']
+        saved=self.client.put('/api/canvases/'+self.board['id'],headers=self.headers,json={'revision':1,'document':value})
+        self.assertEqual(200,saved.status_code,saved.text)
+        response=self.generate(revision=2)
+        self.assertEqual(200,response.status_code,response.text)
+        self.assertEqual(1,self.created[0]['face_reference_index'])
+        self.assertNotIn('face_reference',self.created[0])
+        self.jobs[response.json()['job_id']]['state']='COMPLETED_UNREVIEWED'
+        value['edges'].pop()
+        saved=self.client.put('/api/canvases/'+self.board['id'],headers=self.headers,json={'revision':2,'document':value})
+        self.assertEqual(200,saved.status_code,saved.text)
+        response=self.generate(revision=3)
+        self.assertEqual(422,response.status_code,response.text)
+        self.assertEqual(1,len(self.created))
+
     def test_video_segment_limit(self):
         value=self.board['document'];value['nodes'][0]['kind']='video';value['nodes'][0]['settings']['seconds']=30
         self.client.put('/api/canvases/'+self.board['id'],headers=self.headers,json={'revision':1,'document':value})

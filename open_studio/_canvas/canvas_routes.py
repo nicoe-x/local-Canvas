@@ -103,7 +103,8 @@ def register(ns):
     @app.get("/api/canvas-config")
     def config(request: Request):
         identity(request)
-        return {"image_styles": list(ns["STYLE_PROMPTS"]), "video_styles": list(ns["VIDEO_STYLES"])}
+        return {"image_styles": list(ns["STYLE_PROMPTS"]), "video_styles": list(ns["VIDEO_STYLES"]),
+                "face_repair": bool(getattr(app.state, 'h3_face_repair', False))}
 
     @app.post("/api/canvases")
     async def create_canvas(request: Request):
@@ -299,6 +300,13 @@ def register(ns):
                        "kind": node["kind"], "mode": "creative", "style": settings.get("style", "自定义风格"),
                        "ratio": settings.get("ratio", "16:9"), "labels": [f"参考图{i+1}" for i in range(len(uploads))],
                        "expedite": False}
+            if settings.get('face_repair') and not getattr(app.state, 'h3_face_repair', False):
+                raise HTTPException(501,'当前生成服务尚未安装小脸修复流程，未提交任务')
+            if settings.get('face_repair') and settings.get('face_reference'):
+                if settings['face_reference'] not in reference_nodes:
+                    raise HTTPException(422,'选定的人物参考图已断开连接，请重新选择')
+                payload['face_reference_index']=reference_nodes.index(settings['face_reference'])
+            payload.pop('face_reference',None)
             if node["kind"] == "image":
                 variant = settings.get("variant", "z_image_turbo")
                 payload.update(variant=variant, steps=settings.get("steps", {"z_image_turbo": 8, "h3_image_w4a8": 6}.get(variant, 40)))
