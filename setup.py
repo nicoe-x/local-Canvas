@@ -4,7 +4,7 @@ import shutil
 from setuptools import setup
 from setuptools.command.build_py import build_py
 
-BACKEND=['canvas_store.py','canvas_routes.py','canvas_trash.py','canvas_selection_download.py','canvas_media_tools.py','prepare_three.py','three-manifest.json']
+BACKEND=['canvas_h3.py','canvas_store.py','canvas_routes.py','canvas_trash.py','canvas_selection_download.py','canvas_media_tools.py','prepare_three.py','three-manifest.json']
 
 
 class BuildCanvas(build_py):
