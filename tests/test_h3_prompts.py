@@ -94,6 +94,26 @@ class RouteTests(unittest.TestCase):
         with patch.dict(os.environ,{'STUDIO_TEXT_URL':'http://localhost:1234/v1','STUDIO_TEXT_MODEL':'local-text'}):
             self.assertEqual(422,self.client.post('/api/prompts/h3',headers=self.headers,json=self.body).status_code)
 
+    def test_face_guidance_reaches_converter_without_overriding_authored_composition(self):
+        # A text-only converter must receive the constraints and the original
+        # shot separately; passing a person name is not visual face inspection.
+        source='二维动画，全景全身，女子在夜晚庭院散步，不切镜。'
+        self.result={'segments':[{'seconds':5,'prompt':prompt().replace('Live-action, a woman holds a phone.',
+            '2D animation, continuous wide full-body shot of a woman walking in a night courtyard.')}]}
+        with patch.dict(os.environ,{'STUDIO_TEXT_URL':'http://localhost:1234/v1','STUDIO_TEXT_MODEL':'local-text'}):
+            response=self.client.post('/api/prompts/h3',headers=self.headers,json={**self.body,'source':source,'style':'二维动画'})
+        self.assertEqual(200,response.status_code,response.text)
+        sent=json.loads(self.requests[0].content)['messages']
+        data=json.loads(sent[1]['content'])
+        self.assertEqual(source,data['source']);self.assertEqual('二维动画',data['style'])
+        self.assertEqual([],data['reference_mapping'])
+        for rule in ['Preserve explicitly requested wide shots', 'soft reflected fill',
+                     'never turn animation into live action', 'not image pixels',
+                     'do not claim to have inspected a face']:
+            self.assertIn(rule,sent[0]['content'])
+        self.assertIn('continuous wide full-body',response.json()['segments'][0]['prompt'])
+        self.assertEqual(0,self.client.get('/api/jobs').json()['total'])
+
     def test_h3_video_template_is_not_prefixed_with_style(self):
         from open_studio.workflows import standard
         profile=standard('fixture.safetensors');profile['kind']='video'
