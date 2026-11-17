@@ -250,7 +250,7 @@
 
   function syncComposer() {
     const node = board && selected && nodeBy(selected);
-    const editable = node && ['note', 'image', 'video', 'reverse', 'stage3d'].includes(node.kind);
+    const editable = !document.body.classList.contains('canvas-wiring') && node && ['note', 'image', 'video', 'reverse', 'stage3d'].includes(node.kind);
     composer.hidden = !editable;
     if (!editable) {
       composerNode = null;
@@ -343,14 +343,14 @@
   let wire=null,suppressPortClick=false;
   function cancelWire(){
     if(wire&&viewport.hasPointerCapture(wire.pointer))viewport.releasePointerCapture(wire.pointer);
-    wire=null;ghost.style.display='none';ghostPath.removeAttribute('d');
+    document.body.classList.remove('canvas-wiring');wire=null;ghost.style.display='none';ghostPath.removeAttribute('d');
   }
   viewport.addEventListener('pointerdown',event=>{
     const port=event.target.closest('.port.out');if(!port||event.button!==0)return;
     event.preventDefault();event.stopImmediatePropagation();closeMenu();
     const source=port.closest('.card').dataset.id;
     wire={source,board:board.id,pointer:event.pointerId,x:event.clientX,y:event.clientY,moved:false};
-    select(source);viewport.setPointerCapture(event.pointerId);
+    document.body.classList.add('canvas-wiring');select(source);viewport.setPointerCapture(event.pointerId);
   },true);
   document.addEventListener('pointermove',event=>{
     if(!wire||wire.pointer!==event.pointerId)return;

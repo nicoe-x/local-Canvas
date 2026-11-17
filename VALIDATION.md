@@ -58,3 +58,7 @@
 - Backend tests verify native-node roundtrip and selected-prompt submission, and rejection of incomplete conversions, stale upstream text and duration mismatches. No GPU job was executed by these tests.
 - Local browser fixture covers persistent multiple outputs, selection after reload, editor placement without covering the node, invalidation, and direct native-node-to-video links.
 - The private installation passed a browser acceptance test using a mocked text completion: native node save/reload and direct video connection, no JavaScript errors, no video submitted. Temporary test canvases were isolated from user work. The local Qwen adapter was not changed or run again for this UI follow-up.
+
+## H3 copy and wiring interaction fix
+
+Browser CPU fixture verified: opening the editor then dragging the output port hides both composers; releasing the wire does not reopen the H3 editor; clicking Edit explicitly reopens it. Clipboard tests compared the full output (longer than the 420-character preview) with the system clipboard, including a rejected Clipboard API followed by the legacy copy fallback. Drag-selecting preview text produced a nonempty selection and did not change node coordinates. No model or video jobs were submitted; no JavaScript errors.
