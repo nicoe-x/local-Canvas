@@ -42,6 +42,9 @@ def register(app, authenticate, transport=None, converter=None):
         except Exception:raise HTTPException(502,'文本服务未返回有效结果；请检查服务地址和模型配置') from None
         finally:prompt_busy.discard(user['id'])
 
+    app.state.h3_prompt_prepare=h3_prompt
+    app.state.h3_prompt_request_type=PromptRequest
+
     # Also support host apps that registered their catch-all StaticFiles first.
     route=next(route for route in app.router.routes if getattr(route,'endpoint',None) is h3_prompt)
     app.router.routes.remove(route)

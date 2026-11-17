@@ -207,6 +207,10 @@ def register(ns):
             node = nodes.get(node_id)
             if not node or node["kind"] not in {"image", "video"}:
                 raise HTTPException(422, "请选择图片或视频生成卡片")
+            previous_token=next((run for run in store.runs(owner,key) if run['token']==body.get('token')),None)
+            if previous_token:
+                if previous_token['node_id']!=node_id:raise HTTPException(409,'提交编号已被其他节点使用')
+                return previous_token
             sources = [nodes[edge["source"]] for edge in graph["edges"] if edge["target"] == node_id]
             reference_count = sum(source["kind"] not in {"note", "reverse", "h3prompt"} for source in sources)
             if reference_count > (4 if node["kind"] == "image" else 9):
@@ -275,6 +279,20 @@ def register(ns):
                 if isinstance(seconds, bool) or not isinstance(seconds, (int,float)) or not 4 <= seconds <= 15:
                     raise HTTPException(422, "画布单分镜时长为4–15秒")
                 from canvas_h3 import compile_prompt
+                import re
+                if not re.search(r'(?m)^\s*(?:integrated_multimodal_description|subject_definitions|detailed_description|overall_soundscape|non_diegetic_music):',text):
+                    prepare=getattr(app.state,'h3_prompt_prepare',None)
+                    request_type=getattr(app.state,'h3_prompt_request_type',None)
+                    if prepare is None or request_type is None:
+                        raise HTTPException(501,'尚未配置 H3 提示词处理服务，未提交视频任务')
+                    # Plan complete actions within the whole-second budget; the
+                    # workflow still owns the exact frame-aligned output duration.
+                    try:
+                        converted=await prepare(request,request_type(source=text,seconds=int(seconds),style=settings.get('style','写实'),references=[nodes[ref]['title'] for ref in reference_nodes]))
+                    except HTTPException:raise
+                    except ValueError as error:raise HTTPException(422,'提示词处理参数无效：'+str(error)) from None
+                    if len(converted.get('segments',[]))!=1:raise HTTPException(422,'单个视频节点只能接收一个处理后的片段')
+                    text=converted['segments'][0]['prompt']
                 try:text=compile_prompt(text,reference_nodes,seconds,settings.get('style','写实'))
                 except ValueError as error:raise HTTPException(422,str(error)) from None
             payload = {**settings, "title": node.get("title") or "画布生成", "text": text,

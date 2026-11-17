@@ -63,6 +63,11 @@ class RouteTests(unittest.TestCase):
                       database=database,
                       output_folder=lambda row:self.root/row['id'],clean_image=lambda raw:raw,UnidentifiedImageError=ValueError)
         if hasattr(self,"configure_ns"): self.configure_ns(self.ns)
+        from canvas_h3 import compile_prompt
+        app.state.h3_prompt_request_type=lambda **kwargs:kwargs
+        async def prepare(_request,body):
+            return {'segments':[{'seconds':body['seconds'],'prompt':compile_prompt(body['source'],body['references'],body['seconds'],body['style'])}]}
+        app.state.h3_prompt_prepare=prepare
         register(self.ns)
         self.client=TestClient(app)
         self.headers={'authorization':'alice','x-csrf-token':'csrf'}
