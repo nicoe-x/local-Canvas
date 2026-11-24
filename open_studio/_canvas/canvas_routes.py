@@ -104,7 +104,8 @@ def register(ns):
     def config(request: Request):
         identity(request)
         return {"image_styles": list(ns["STYLE_PROMPTS"]), "video_styles": list(ns["VIDEO_STYLES"]),
-                "face_repair": bool(getattr(app.state, 'h3_face_repair', False))}
+                "face_repair": bool(getattr(app.state, 'h3_face_repair', False)),
+                "video_resample": callable(getattr(app.state, 'h3_video_resample', None))}
 
     @app.post("/api/canvases")
     async def create_canvas(request: Request):
@@ -208,6 +209,9 @@ def register(ns):
             node = nodes.get(node_id)
             if not node or node["kind"] not in {"image", "video"}:
                 raise HTTPException(422, "请选择图片或视频生成卡片")
+            if node.get('settings', {}).get('video_resample') is not None:
+                from canvas_video_resample import generate as resample
+                return await resample(ns, store, owner, key, node_id, body, request)
             previous_token=next((run for run in store.runs(owner,key) if run['token']==body.get('token')),None)
             if previous_token:
                 if previous_token['node_id']!=node_id:raise HTTPException(409,'提交编号已被其他节点使用')

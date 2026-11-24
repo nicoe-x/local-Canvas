@@ -3,3 +3,5 @@
 .result-tool-pending small{font-size:8px;color:#a7c7ed;background:#3b4c622e;border-radius:4px;padding:1px 3px}
 
 .result-tool-content>canvas.result-image-editor{width:auto;max-width:100%;height:auto;max-height:50vh;margin:auto}
+.resample-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.resample-fields label{display:flex;flex-direction:column;gap:8px}.resample-fields label:last-child{grid-column:1/-1}.resample-fields input,.resample-fields textarea{width:100%}.video-resample-selected #toolbar-model,.video-resample-selected #toolbar-mode,.video-resample-selected #toolbar-settings,.video-resample-selected #duration-field,.video-resample-selected #settings .pair,.video-resample-selected #composer-model,.video-resample-selected #composer-mode,.video-resample-selected #composer-ratio{display:none!important}#video-resample-dialog button{min-height:44px}@media(max-width:600px){.resample-fields{grid-template-columns:1fr}}
+.video-resample-selected .composer-top>button:not(#composer-expand),.video-resample-selected #composer-advanced{display:none!important}
