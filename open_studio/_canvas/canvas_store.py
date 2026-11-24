@@ -48,8 +48,13 @@ def document(value):
             if node.get(key):
                 checked_id(node[key])
         settings = node.get("settings", {})
-        if not isinstance(settings, dict) or set(settings) - {"variant", "ratio", "style", "seconds", "steps", "cfg", "seed", "image_task", "stage3d", "reverse_prompts", "reverse_language", "reference_mentions", "h3_prompt", "h3_result", "face_repair", "face_reference"}:
+        if not isinstance(settings, dict) or set(settings) - {"variant", "ratio", "style", "seconds", "steps", "cfg", "seed", "image_task", "stage3d", "reverse_prompts", "reverse_language", "reference_mentions", "h3_prompt", "h3_result", "face_repair", "face_reference", "video_resample"}:
             raise ValueError("生成参数无效")
+        if 'video_resample' in settings:
+            from canvas_video_resample import validate_settings
+            if node['kind'] != 'video':
+                raise ValueError('二采设置仅用于视频节点')
+            validate_settings(settings['video_resample'])
         if 'face_repair' in settings and (type(settings['face_repair']) is not bool or node['kind'] != 'video'):
             raise ValueError('小脸修复仅接受视频节点的布尔开关')
         if settings.get('face_reference') is not None:
